@@ -1,6 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <ProjectReference Include="..\RiskTrace.Infrastructure\RiskTrace.Infrastructure.csproj" /> #Will remove after testing - API should not depend on Infrastructure
     <ProjectReference Include="..\RiskTrace.UseCases\RiskTrace.UseCases.csproj" />
   </ItemGroup>
 

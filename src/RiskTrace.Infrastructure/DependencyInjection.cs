@@ -35,12 +35,6 @@ public static class DependencyInjection
                 postgreSqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName));
         });
 
-        services.AddDbContextFactory<AppDbContext>(options =>
-        {
-            options.UseNpgsql(connectionString, postgreSqlOptions =>
-                postgreSqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName));
-        });
-
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IReviewSessionRepository, ReviewSessionRepository>();
         services.AddScoped<IDocumentRepository, DocumentRepository>();
