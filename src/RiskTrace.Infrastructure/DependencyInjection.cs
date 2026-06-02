@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using RiskTrace.Infrastructure.AI;
 using RiskTrace.Infrastructure.Auth;
 using RiskTrace.Infrastructure.Persistence;
@@ -19,6 +20,17 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        //App will fail to start if JwtOptions are not properly configured, 
+        // which is good because we don't want it to run without valid JWT settings.
+        services
+            .AddOptions<JwtOptions>()
+            .Bind(configuration.GetSection(JwtOptions.SectionName))
+            .ValidateDataAnnotations()
+            .Validate(
+                options => !string.IsNullOrWhiteSpace(options.AccessTokenCookieName),
+                "Jwt:AccessTokenCookieName must not be empty.")
+            .ValidateOnStart();
+
         var databaseProvider = configuration["Database:Provider"] ?? "PostgreSQL";
         var connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException("Connection string 'DefaultConnection' was not found.");
