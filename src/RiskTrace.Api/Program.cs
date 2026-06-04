@@ -8,6 +8,8 @@ public partial class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
+        builder.Services.AddControllers();
+
         //Will remove soon - API should not depend on Infrastructure
         builder.Services.AddInfrastructure(builder.Configuration);
 
@@ -19,7 +21,7 @@ public partial class Program
             dbContext.Database.Migrate();
         }
 
-        app.MapGet("/", () => "Hello World!");
+        app.MapControllers();
 
         app.Run();
     }

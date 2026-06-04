@@ -5,7 +5,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <ProjectReference Include="..\RiskTrace.Infrastructure\RiskTrace.Infrastructure.csproj" /> #Will remove after testing - API should not depend on Infrastructure
+    <ProjectReference Include="..\RiskTrace.Infrastructure\RiskTrace.Infrastructure.csproj" />
     <ProjectReference Include="..\RiskTrace.UseCases\RiskTrace.UseCases.csproj" />
   </ItemGroup>
 
