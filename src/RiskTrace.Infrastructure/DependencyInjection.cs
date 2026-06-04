@@ -63,6 +63,7 @@ public static class DependencyInjection
         services.AddScoped<ILegalAiClient, LegalAiHttpClient>();
         services.AddScoped<IFileStorage, LocalFileStorage>();
         services.AddScoped<ILoginUseCase, LoginUseCase>();
+        services.AddScoped<ILogoutUseCase, LogoutUseCase>();
         services.AddScoped<IRefreshTokenUseCase, RefreshTokenUseCase>();
         services.AddScoped<IRegisterUseCase, RegisterUseCase>();
 
