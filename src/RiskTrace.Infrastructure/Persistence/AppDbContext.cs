@@ -1,9 +1,10 @@
 using Microsoft.EntityFrameworkCore;
+using RiskTrace.Core.Abstractions;
 using RiskTrace.Domain.Entities;
 
 namespace RiskTrace.Infrastructure.Persistence;
 
-public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
+public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options), IUnitOfWork
 {
     public DbSet<User> Users => Set<User>();
 

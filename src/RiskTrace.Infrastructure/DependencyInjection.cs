@@ -2,15 +2,18 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using RiskTrace.Core.Abstractions;
 using RiskTrace.Infrastructure.AI;
 using RiskTrace.Infrastructure.Auth;
 using RiskTrace.Infrastructure.Persistence;
 using RiskTrace.Infrastructure.Persistence.Repositories;
 using RiskTrace.Infrastructure.Storage;
+using RiskTrace.UseCases.Interfaces.Auth;
 using RiskTrace.UseCases.Ports.AI;
 using RiskTrace.UseCases.Ports.Auth;
 using RiskTrace.UseCases.Ports.Repositories;
 using RiskTrace.UseCases.Ports.Storage;
+using RiskTrace.UseCases.UseCases.Auth;
 
 namespace RiskTrace.Infrastructure;
 
@@ -46,6 +49,7 @@ public static class DependencyInjection
             options.UseNpgsql(connectionString, postgreSqlOptions =>
                 postgreSqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName));
         });
+        services.AddScoped<IUnitOfWork>(serviceProvider => serviceProvider.GetRequiredService<AppDbContext>());
 
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
@@ -58,6 +62,7 @@ public static class DependencyInjection
         services.AddScoped<ICurrentUserProvider, CurrentUserProvider>();
         services.AddScoped<ILegalAiClient, LegalAiHttpClient>();
         services.AddScoped<IFileStorage, LocalFileStorage>();
+        services.AddScoped<IRegisterUseCase, RegisterUseCase>();
 
         return services;
     }
