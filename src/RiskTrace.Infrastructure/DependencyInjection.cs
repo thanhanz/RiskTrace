@@ -62,6 +62,7 @@ public static class DependencyInjection
         services.AddScoped<ICurrentUserProvider, CurrentUserProvider>();
         services.AddScoped<ILegalAiClient, LegalAiHttpClient>();
         services.AddScoped<IFileStorage, LocalFileStorage>();
+        services.AddScoped<ILoginUseCase, LoginUseCase>();
         services.AddScoped<IRegisterUseCase, RegisterUseCase>();
 
         return services;
