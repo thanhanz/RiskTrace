@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using RiskTrace.Infrastructure;
 using RiskTrace.Infrastructure.Persistence;
 using RiskTrace.UseCases;

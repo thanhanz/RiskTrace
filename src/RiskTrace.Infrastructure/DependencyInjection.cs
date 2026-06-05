@@ -48,6 +48,7 @@ public static class DependencyInjection
             options.UseNpgsql(connectionString, postgreSqlOptions =>
                 postgreSqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName));
         });
+
         services.AddHttpContextAccessor();
         services.AddScoped<IUnitOfWork>(serviceProvider => serviceProvider.GetRequiredService<AppDbContext>());
         
