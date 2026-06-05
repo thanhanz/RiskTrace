@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using RiskTrace.Core.Abstractions;
+using RiskTrace.Core.Interfaces;
 using RiskTrace.Infrastructure.AI;
 using RiskTrace.Infrastructure.Auth;
 using RiskTrace.Infrastructure.Persistence;
@@ -49,7 +50,11 @@ public static class DependencyInjection
             options.UseNpgsql(connectionString, postgreSqlOptions =>
                 postgreSqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName));
         });
+        services.AddHttpContextAccessor();
         services.AddScoped<IUnitOfWork>(serviceProvider => serviceProvider.GetRequiredService<AppDbContext>());
+        
+        services.AddScoped(typeof(IRepository<>), typeof(EfRepository<>));
+        services.AddScoped(typeof(IReadRepository<>), typeof(EfReadRepository<>));
 
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
