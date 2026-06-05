@@ -5,6 +5,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.2.1" />
     <ProjectReference Include="..\RiskTrace.Infrastructure\RiskTrace.Infrastructure.csproj" />
     <ProjectReference Include="..\RiskTrace.UseCases\RiskTrace.UseCases.csproj" />
   </ItemGroup>
