@@ -7,11 +7,14 @@ services:
     depends_on:
       risktrace.db:
         condition: service_healthy
+      risktrace.redis:
+        condition: service_started
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080
       Database__Provider: PostgreSQL
       ConnectionStrings__DefaultConnection: Host=risktrace.db;Port=5432;Database=risktrace_db;Username=postgres;Password=1234
+      ConnectionStrings__Redis: risktrace.redis:6379
     ports:
       - "8080:8080"
 
@@ -32,6 +35,13 @@ services:
       - "5433:5432"
     volumes:
       - risktrace-postgres:/var/lib/postgresql/data
+
+  risktrace.redis:
+    container_name: risktrace.redis
+    image: redis:8-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
 
 volumes:
   risktrace-postgres:

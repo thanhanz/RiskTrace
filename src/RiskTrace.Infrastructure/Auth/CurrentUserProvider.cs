@@ -1,3 +1,4 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using RiskTrace.UseCases.Ports.Auth;
@@ -10,11 +11,21 @@ public sealed class CurrentUserProvider(IHttpContextAccessor httpContextAccessor
     {
         get
         {
-            var userIdValue = httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var user = httpContextAccessor.HttpContext?.User;
+            var userIdValue = user?.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? user?.FindFirstValue(JwtRegisteredClaimNames.Sub);
 
             return Guid.TryParse(userIdValue, out var userId) ? userId : null;
         }
     }
 
-    public string? Email => httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.Email);
+    public string? Email
+    {
+        get
+        {
+            var user = httpContextAccessor.HttpContext?.User;
+            return user?.FindFirstValue(ClaimTypes.Email)
+                ?? user?.FindFirstValue(JwtRegisteredClaimNames.Email);
+        }
+    }
 }

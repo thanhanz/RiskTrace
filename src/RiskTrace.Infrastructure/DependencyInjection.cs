@@ -1,7 +1,10 @@
+using System.Security.Claims;
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using RiskTrace.Core.Abstractions;
 using RiskTrace.Core.Interfaces;
 using RiskTrace.Infrastructure.AI;
@@ -36,6 +39,8 @@ public static class DependencyInjection
         var databaseProvider = configuration["Database:Provider"] ?? "PostgreSQL";
         var connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException("Connection string 'DefaultConnection' was not found.");
+        var redisConnectionString = configuration.GetConnectionString("Redis")
+            ?? throw new InvalidOperationException("Connection string 'Redis' was not found.");
 
         if (!string.Equals(databaseProvider, "PostgreSQL", StringComparison.OrdinalIgnoreCase))
         {
@@ -48,6 +53,64 @@ public static class DependencyInjection
             options.UseNpgsql(connectionString, postgreSqlOptions =>
                 postgreSqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName));
         });
+
+        services.AddStackExchangeRedisCache(options =>
+        {
+            options.Configuration = redisConnectionString;
+        });
+
+        services
+            .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer(options =>
+            {
+                var jwtOptions = configuration
+                    .GetSection(JwtOptions.SectionName)
+                    .Get<JwtOptions>()
+                    ?? throw new InvalidOperationException("Jwt configuration was not found.");
+
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = jwtOptions.Issuer,
+                    ValidAudience = jwtOptions.Audience,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SigningKey)),
+                    ClockSkew = TimeSpan.Zero,
+                    NameClaimType = ClaimTypes.NameIdentifier,
+                    RoleClaimType = ClaimTypes.Role
+                };
+                options.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        context.Token = AccessTokenReader.ReadToken(
+                            context.HttpContext.Request,
+                            jwtOptions.AccessTokenCookieName);
+
+                        return Task.CompletedTask;
+                    },
+                    OnTokenValidated = async context =>
+                    {
+                        var accessToken = context.Token;
+                        if (string.IsNullOrWhiteSpace(accessToken))
+                        {
+                            return;
+                        }
+
+                        var revocationService = context.HttpContext.RequestServices
+                            .GetRequiredService<IAccessTokenRevocationService>();
+
+                        if (await revocationService.IsRevokedAsync(accessToken, context.HttpContext.RequestAborted))
+                        {
+                            context.Fail("Access token has been revoked.");
+                        }
+                    }
+                };
+            });
+
+        services.AddAuthorization();
 
         services.AddHttpContextAccessor();
         services.AddScoped<IUnitOfWork>(serviceProvider => serviceProvider.GetRequiredService<AppDbContext>());
@@ -63,6 +126,7 @@ public static class DependencyInjection
         services.AddScoped<IReviewResultRepository, ReviewResultRepository>();
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
+        services.AddScoped<IAccessTokenRevocationService, RedisAccessTokenRevocationService>();
         services.AddScoped<ICurrentUserProvider, CurrentUserProvider>();
         services.AddScoped<ILegalAiClient, LegalAiHttpClient>();
         services.AddScoped<IFileStorage, LocalFileStorage>();

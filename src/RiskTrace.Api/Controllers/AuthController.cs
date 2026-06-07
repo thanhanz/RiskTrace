@@ -62,7 +62,11 @@ public sealed class AuthController(
         [FromBody] RefreshTokenRequest request,
         CancellationToken cancellationToken)
     {
-        await logoutUseCase.ExecuteAsync(request, cancellationToken);
+        var accessToken = AccessTokenReader.ReadToken(Request, _jwtOptions.AccessTokenCookieName);
+
+        await logoutUseCase.ExecuteAsync(
+            new LogoutRequest(request.RefreshToken, accessToken),
+            cancellationToken);
 
         ClearAccessTokenCookie();
 

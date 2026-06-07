@@ -5,6 +5,6 @@ namespace RiskTrace.UseCases.Interfaces.Auth;
 public interface ILogoutUseCase
 {
     Task ExecuteAsync(
-        RefreshTokenRequest request,
+        LogoutRequest request,
         CancellationToken cancellationToken = default);
 }

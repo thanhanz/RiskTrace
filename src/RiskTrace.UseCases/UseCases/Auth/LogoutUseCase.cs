@@ -5,16 +5,19 @@ using RiskTrace.Core.Interfaces;
 using RiskTrace.Domain.Entities;
 using RiskTrace.Domain.Request;
 using RiskTrace.UseCases.Interfaces.Auth;
+using RiskTrace.UseCases.Ports.Auth;
 
 namespace RiskTrace.UseCases.UseCases.Auth;
 
 public sealed class LogoutUseCase(
     IReadRepository<RefreshToken> refreshTokenReadRepository,
     IRepository<RefreshToken> refreshTokenRepository,
-    IUnitOfWork unitOfWork) : ILogoutUseCase
+    IUnitOfWork unitOfWork,
+    IAccessTokenRevocationService accessTokenRevocationService,
+    IJwtTokenService jwtTokenService) : ILogoutUseCase
 {
     public async Task ExecuteAsync(
-        RefreshTokenRequest request,
+        LogoutRequest request,
         CancellationToken cancellationToken = default)
     {
         var tokenHash = HashToken(request.RefreshToken);
@@ -34,6 +37,22 @@ public sealed class LogoutUseCase(
 
         await refreshTokenRepository.UpdateAsync(refreshToken, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        if (string.IsNullOrWhiteSpace(request.AccessToken))
+        {
+            return;
+        }
+
+        var expiresAtUtc = jwtTokenService.GetAccessTokenExpirationUtc(request.AccessToken);
+        if (!expiresAtUtc.HasValue)
+        {
+            return;
+        }
+
+        await accessTokenRevocationService.RevokeAsync(
+            request.AccessToken,
+            expiresAtUtc.Value,
+            cancellationToken);
     }
 
     private static string HashToken(string token)

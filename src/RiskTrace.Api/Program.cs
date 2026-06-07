@@ -39,6 +39,9 @@ public partial class Program
             dbContext.Database.Migrate();
         }
 
+        app.UseAuthentication();
+        app.UseAuthorization();
+
         app.MapControllers();
 
         app.Run();
