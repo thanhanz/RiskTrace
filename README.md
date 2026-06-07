@@ -1,6 +1,6 @@
 # RiskTrace
 
-RiskTrace is an in-progress backend for a legal-tech style document review workflow. The project is being built as an ASP.NET Core Web API with a layered architecture, PostgreSQL persistence, JWT-based authentication, and an integration boundary for an external AI service that will analyze uploaded legal documents and support session-based conversations.
+RiskTrace is an in-progress backend for a legal-tech style document review workflow. The project is being built as an ASP.NET Core Web API with Clean Architecture, PostgreSQL persistence, JWT-based authentication, and an integration boundary for an external AI service that will analyze uploaded legal documents and support session-based conversations.
 
 The current codebase is stronger in architecture and backend foundations than in end-user feature completeness. Authentication, persistence, database migrations, dependency wiring, and deployment scaffolding are implemented. Session, document, message, and review-result flows are already modeled in the domain and solution structure, but most of those use cases are still placeholders.
 
