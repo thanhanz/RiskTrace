@@ -50,14 +50,14 @@ public sealed class JwtTokenService(IOptions<JwtOptions> options) : IJwtTokenSer
         return new TokenResult(token, expiresAt);
     }
 
-    public DateTime? GetAccessTokenExpirationUtc(string accessToken)
+    public DateTime? GetTokenExpirationUtc(string token)
     {
         try
         {
-            var token = new JwtSecurityTokenHandler().ReadJwtToken(accessToken);
-            return token.ValidTo == DateTime.MinValue
+            var jwtToken = new JwtSecurityTokenHandler().ReadJwtToken(token);
+            return jwtToken.ValidTo == DateTime.MinValue
                 ? null
-                : DateTime.SpecifyKind(token.ValidTo, DateTimeKind.Utc);
+                : DateTime.SpecifyKind(jwtToken.ValidTo, DateTimeKind.Utc);
         }
         catch (ArgumentException)
         {

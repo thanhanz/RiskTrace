@@ -13,12 +13,10 @@ public sealed class LogoutUseCase(
     IReadRepository<RefreshToken> refreshTokenReadRepository,
     IRepository<RefreshToken> refreshTokenRepository,
     IUnitOfWork unitOfWork,
-    IAccessTokenRevocationService accessTokenRevocationService,
+    ITokenBlackList tokenBlackList,
     IJwtTokenService jwtTokenService) : ILogoutUseCase
 {
-    public async Task ExecuteAsync(
-        LogoutRequest request,
-        CancellationToken cancellationToken = default)
+    public async Task ExecuteAsync(LogoutRequest request, CancellationToken cancellationToken = default)
     {
         var tokenHash = HashToken(request.RefreshToken);
 
@@ -43,13 +41,13 @@ public sealed class LogoutUseCase(
             return;
         }
 
-        var expiresAtUtc = jwtTokenService.GetAccessTokenExpirationUtc(request.AccessToken);
+        var expiresAtUtc = jwtTokenService.GetTokenExpirationUtc(request.AccessToken);
         if (!expiresAtUtc.HasValue)
         {
             return;
         }
 
-        await accessTokenRevocationService.RevokeAsync(
+        await tokenBlackList.AddToBlacklistAsync(
             request.AccessToken,
             expiresAtUtc.Value,
             cancellationToken);

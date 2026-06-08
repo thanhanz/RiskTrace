@@ -1,13 +1,13 @@
-namespace RiskTrace.UseCases.Ports.Auth;
+namespace RiskTrace.Core.Interfaces;
 
-public interface IAccessTokenRevocationService
+public interface ITokenBlackList
 {
-    Task RevokeAsync(
+    Task AddToBlacklistAsync(
         string accessToken,
         DateTime expiresAtUtc,
         CancellationToken cancellationToken = default);
 
-    Task<bool> IsRevokedAsync(
+    Task<bool> ExistsAsync(
         string accessToken,
         CancellationToken cancellationToken = default);
 }

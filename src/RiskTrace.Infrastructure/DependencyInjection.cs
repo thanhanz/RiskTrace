@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -77,10 +76,9 @@ public static class DependencyInjection
                     ValidIssuer = jwtOptions.Issuer,
                     ValidAudience = jwtOptions.Audience,
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SigningKey)),
-                    ClockSkew = TimeSpan.Zero,
-                    NameClaimType = ClaimTypes.NameIdentifier,
-                    RoleClaimType = ClaimTypes.Role
+                    ClockSkew = TimeSpan.Zero
                 };
+
                 options.Events = new JwtBearerEvents
                 {
                     OnMessageReceived = context =>
@@ -88,24 +86,7 @@ public static class DependencyInjection
                         context.Token = AccessTokenReader.ReadToken(
                             context.HttpContext.Request,
                             jwtOptions.AccessTokenCookieName);
-
                         return Task.CompletedTask;
-                    },
-                    OnTokenValidated = async context =>
-                    {
-                        var accessToken = context.Token;
-                        if (string.IsNullOrWhiteSpace(accessToken))
-                        {
-                            return;
-                        }
-
-                        var revocationService = context.HttpContext.RequestServices
-                            .GetRequiredService<IAccessTokenRevocationService>();
-
-                        if (await revocationService.IsRevokedAsync(accessToken, context.HttpContext.RequestAborted))
-                        {
-                            context.Fail("Access token has been revoked.");
-                        }
                     }
                 };
             });
@@ -118,6 +99,9 @@ public static class DependencyInjection
         services.AddScoped(typeof(IRepository<>), typeof(EfRepository<>));
         services.AddScoped(typeof(IReadRepository<>), typeof(EfReadRepository<>));
 
+        // Singleton services
+        services.AddSingleton<ITokenBlackList, TokenBlackList>();
+
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
         services.AddScoped<IReviewSessionRepository, ReviewSessionRepository>();
@@ -126,7 +110,7 @@ public static class DependencyInjection
         services.AddScoped<IReviewResultRepository, ReviewResultRepository>();
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
-        services.AddScoped<IAccessTokenRevocationService, RedisAccessTokenRevocationService>();
+        
         services.AddScoped<ICurrentUserProvider, CurrentUserProvider>();
         services.AddScoped<ILegalAiClient, LegalAiHttpClient>();
         services.AddScoped<IFileStorage, LocalFileStorage>();

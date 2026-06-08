@@ -59,14 +59,14 @@ public sealed class AuthController(
     [HttpPost("logout")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> Logout(
-        [FromBody] RefreshTokenRequest request,
+        [FromBody] LogoutRequest request,
         CancellationToken cancellationToken)
     {
-        var accessToken = AccessTokenReader.ReadToken(Request, _jwtOptions.AccessTokenCookieName);
+        var accessToken = string.IsNullOrEmpty(request.AccessToken) ? 
+                          AccessTokenReader.ReadToken(Request, _jwtOptions.AccessTokenCookieName) :
+                          request.AccessToken;
 
-        await logoutUseCase.ExecuteAsync(
-            new LogoutRequest(request.RefreshToken, accessToken),
-            cancellationToken);
+        await logoutUseCase.ExecuteAsync(new LogoutRequest(request.RefreshToken, accessToken), cancellationToken);
 
         ClearAccessTokenCookie();
 

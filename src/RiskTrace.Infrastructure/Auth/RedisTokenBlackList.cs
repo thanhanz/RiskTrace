@@ -1,15 +1,15 @@
 using Microsoft.Extensions.Caching.Distributed;
-using RiskTrace.UseCases.Ports.Auth;
+using RiskTrace.Core.Interfaces;
 
 namespace RiskTrace.Infrastructure.Auth;
 
-public sealed class RedisAccessTokenRevocationService(IDistributedCache distributedCache) : IAccessTokenRevocationService
+public sealed class TokenBlackList(IDistributedCache distributedCache) : ITokenBlackList
 {
-    private const string RevokedValue = "revoked";
-    private const string KeyPrefix = "auth:revoked-access-token:";
+    private const string BlacklistValue = "revoked";
+    private const string KeyPrefix = "auth:token-blacklist:";
 
-    public async Task RevokeAsync(
-        string accessToken,
+    public async Task AddToBlacklistAsync(
+        string jti,
         DateTime expiresAtUtc,
         CancellationToken cancellationToken = default)
     {
@@ -20,8 +20,8 @@ public sealed class RedisAccessTokenRevocationService(IDistributedCache distribu
         }
 
         await distributedCache.SetStringAsync(
-            BuildKey(accessToken),
-            RevokedValue,
+            BuildKey(jti),
+            BlacklistValue,
             new DistributedCacheEntryOptions
             {
                 AbsoluteExpirationRelativeToNow = ttl
@@ -29,16 +29,16 @@ public sealed class RedisAccessTokenRevocationService(IDistributedCache distribu
             cancellationToken);
     }
 
-    public async Task<bool> IsRevokedAsync(
-        string accessToken,
+    public async Task<bool> ExistsAsync(
+        string jti,
         CancellationToken cancellationToken = default)
     {
         var cachedValue = await distributedCache.GetStringAsync(
-            BuildKey(accessToken),
+            BuildKey(jti),
             cancellationToken);
 
         return !string.IsNullOrWhiteSpace(cachedValue);
     }
 
-    private static string BuildKey(string accessToken) => $"{KeyPrefix}{accessToken}";
+    private static string BuildKey(string jti) => $"{KeyPrefix}{jti}";
 }

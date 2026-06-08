@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
+using RiskTrace.Api.Middleware;
 using RiskTrace.Infrastructure;
 using RiskTrace.Infrastructure.Persistence;
 using RiskTrace.UseCases;
@@ -40,6 +41,7 @@ public partial class Program
         }
 
         app.UseAuthentication();
+        app.UseMiddleware<TokenBlacklistMiddleware>();
         app.UseAuthorization();
 
         app.MapControllers();
