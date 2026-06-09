@@ -1,7 +1,9 @@
 using System.Security.Cryptography;
 using System.Text;
 using RiskTrace.Core.Abstractions;
+using RiskTrace.Core.Common;
 using RiskTrace.Core.Interfaces;
+using RiskTrace.Domain.Constants;
 using RiskTrace.Domain.Entities;
 using RiskTrace.Domain.Request;
 using RiskTrace.UseCases.Interfaces.Auth;
@@ -16,7 +18,9 @@ public sealed class LogoutUseCase(
     ITokenBlackList tokenBlackList,
     IJwtTokenService jwtTokenService) : ILogoutUseCase
 {
-    public async Task ExecuteAsync(LogoutRequest request, CancellationToken cancellationToken = default)
+    public async Task<ApiResponse<object?>> ExecuteAsync(
+        LogoutRequest request,
+        CancellationToken cancellationToken = default)
     {
         var tokenHash = HashToken(request.RefreshToken);
 
@@ -26,7 +30,9 @@ public sealed class LogoutUseCase(
 
         if (refreshToken is null)
         {
-            throw new InvalidOperationException("Invalid refresh token.");
+            return ApiResponse<object?>.Failure(
+                AuthErrorCodes.InvalidRefreshToken,
+                "Invalid refresh token.");
         }
 
         refreshToken.RevokedAt = DateTime.UtcNow;
@@ -38,19 +44,21 @@ public sealed class LogoutUseCase(
 
         if (string.IsNullOrWhiteSpace(request.AccessToken))
         {
-            return;
+            return ApiResponse<object?>.Success(null);
         }
 
         var expiresAtUtc = jwtTokenService.GetTokenExpirationUtc(request.AccessToken);
         if (!expiresAtUtc.HasValue)
         {
-            return;
+            return ApiResponse<object?>.Success(null);
         }
 
         await tokenBlackList.AddToBlacklistAsync(
             request.AccessToken,
             expiresAtUtc.Value,
             cancellationToken);
+
+        return ApiResponse<object?>.Success(null);
     }
 
     private static string HashToken(string token)

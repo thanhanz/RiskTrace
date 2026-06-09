@@ -1,7 +1,9 @@
 using System.Security.Cryptography;
 using System.Text;
 using RiskTrace.Core.Abstractions;
+using RiskTrace.Core.Common;
 using RiskTrace.Core.Interfaces;
+using RiskTrace.Domain.Constants;
 using RiskTrace.Domain.Entities;
 using RiskTrace.Domain.Request;
 using RiskTrace.Domain.Response;
@@ -17,7 +19,7 @@ public sealed class RefreshTokenUseCase(
     IJwtTokenService jwtTokenService,
     IUnitOfWork unitOfWork) : IRefreshTokenUseCase
 {
-    public async Task<AuthResponse> ExecuteAsync(
+    public async Task<ApiResponse<AuthResponse>> ExecuteAsync(
         RefreshTokenRequest request,
         CancellationToken cancellationToken = default)
     {
@@ -33,7 +35,9 @@ public sealed class RefreshTokenUseCase(
             !currentRefreshToken.IsActive ||
             currentRefreshToken.ReplacedByTokenId is not null)
         {
-            throw new InvalidOperationException("Invalid refresh token.");
+            return ApiResponse<AuthResponse>.Failure(
+                AuthErrorCodes.InvalidRefreshToken,
+                "Invalid refresh token.");
         }
 
         var user = await userReadRepository.FirstOrDefaultAsync(
@@ -42,7 +46,9 @@ public sealed class RefreshTokenUseCase(
 
         if (user is null || !user.IsActive)
         {
-            throw new InvalidOperationException("User not found.");
+            return ApiResponse<AuthResponse>.Failure(
+                AuthErrorCodes.UserNotFound,
+                "User not found.");
         }
 
         var accessToken = jwtTokenService.GenerateAccessToken(user);
@@ -67,14 +73,14 @@ public sealed class RefreshTokenUseCase(
         await refreshTokenRepository.AddAsync(newRefreshTokenEntity, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        return new AuthResponse(
+        return ApiResponse<AuthResponse>.Success(new AuthResponse(
             AccessToken: accessToken.Token,
             RefreshToken: newRefreshToken.Token,
             User: new UserInfoResponse(
                 Id: user.Id,
                 Email: user.Email,
                 FullName: user.FullName,
-                Role: user.Role));
+                Role: user.Role)));
     }
 
     private static string HashToken(string token)

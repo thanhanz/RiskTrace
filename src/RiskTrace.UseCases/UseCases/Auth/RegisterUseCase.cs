@@ -1,7 +1,9 @@
 using System.Security.Cryptography;
 using System.Text;
 using RiskTrace.Core.Abstractions;
+using RiskTrace.Core.Common;
 using RiskTrace.Core.Interfaces;
+using RiskTrace.Domain.Constants;
 using RiskTrace.Domain.Entities;
 using RiskTrace.Domain.Enums;
 using RiskTrace.Domain.Request;
@@ -19,7 +21,7 @@ public sealed class RegisterUseCase(
     IJwtTokenService jwtTokenService,
     IUnitOfWork unitOfWork) : IRegisterUseCase
 {
-    public async Task<AuthResponse> ExecuteAsync(
+    public async Task<ApiResponse<AuthResponse>> ExecuteAsync(
         RegisterRequest request,
         CancellationToken cancellationToken = default)
     {
@@ -32,7 +34,9 @@ public sealed class RegisterUseCase(
 
         if (existingUser is not null)
         {
-            throw new InvalidOperationException("Email already exists.");
+            return ApiResponse<AuthResponse>.Failure(
+                AuthErrorCodes.EmailExists,
+                "Email already exists.");
         }
 
         var user = new User
@@ -63,14 +67,14 @@ public sealed class RegisterUseCase(
         await refreshTokenRepository.AddAsync(refreshTokenEntity, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        return new AuthResponse(
+        return ApiResponse<AuthResponse>.Success(new AuthResponse(
             AccessToken: accessToken.Token,
             RefreshToken: refreshToken.Token,
             User: new UserInfoResponse(
                 Id: user.Id,
                 Email: user.Email,
                 FullName: user.FullName,
-                Role: user.Role));
+                Role: user.Role)));
     }
 
     private static string HashToken(string token)

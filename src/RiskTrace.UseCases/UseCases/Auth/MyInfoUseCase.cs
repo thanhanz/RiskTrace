@@ -1,3 +1,5 @@
+using RiskTrace.Core.Common;
+using RiskTrace.Domain.Constants;
 using RiskTrace.Domain.Response;
 using RiskTrace.UseCases.Interfaces.Auth;
 using RiskTrace.UseCases.Ports.Auth;
@@ -9,30 +11,28 @@ public sealed class MyInfoUseCase(
     ICurrentUserProvider currentUserProvider,
     IUserRepository userRepository) : IMyInfoUseCase
 {
-    public async Task<MyInfoResult> ExecuteAsync(CancellationToken cancellationToken = default)
+    public async Task<ApiResponse<UserInfoResponse>> ExecuteAsync(CancellationToken cancellationToken = default)
     {
         if (currentUserProvider.UserId is not { } userId)
         {
-            return new MyInfoResult(
-                IsAuthenticated: false,
-                User: null);
+            return ApiResponse<UserInfoResponse>.Failure(
+                AuthErrorCodes.Unauthorized,
+                "Unauthorized.");
         }
 
         var user = await userRepository.GetByIdAsync(userId, cancellationToken);
 
         if (user is null || !user.IsActive)
         {
-            return new MyInfoResult(
-                IsAuthenticated: true,
-                User: null);
+            return ApiResponse<UserInfoResponse>.Failure(
+                AuthErrorCodes.UserNotFound,
+                "User not found.");
         }
 
-        return new MyInfoResult(
-            IsAuthenticated: true,
-            User: new UserInfoResponse(
-                Id: user.Id,
-                Email: user.Email,
-                FullName: user.FullName,
-                Role: user.Role));
+        return ApiResponse<UserInfoResponse>.Success(new UserInfoResponse(
+            Id: user.Id,
+            Email: user.Email,
+            FullName: user.FullName,
+            Role: user.Role));
     }
 }

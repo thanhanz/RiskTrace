@@ -1,7 +1,9 @@
 using System.Security.Cryptography;
 using System.Text;
 using RiskTrace.Core.Abstractions;
+using RiskTrace.Core.Common;
 using RiskTrace.Core.Interfaces;
+using RiskTrace.Domain.Constants;
 using RiskTrace.Domain.Entities;
 using RiskTrace.Domain.Request;
 using RiskTrace.Domain.Response;
@@ -17,7 +19,7 @@ public sealed class LoginUseCase(
     IJwtTokenService jwtTokenService,
     IUnitOfWork unitOfWork) : ILoginUseCase
 {
-    public async Task<AuthResponse> ExecuteAsync(
+    public async Task<ApiResponse<AuthResponse>> ExecuteAsync(
         LoginRequest request,
         CancellationToken cancellationToken = default)
     {
@@ -29,7 +31,9 @@ public sealed class LoginUseCase(
 
         if (user is null || !passwordHasher.Verify(request.Password, user.PasswordHash))
         {
-            throw new InvalidOperationException("Invalid email or password.");
+            return ApiResponse<AuthResponse>.Failure(
+                AuthErrorCodes.InvalidCredentials,
+                "Invalid email or password.");
         }
 
         var accessToken = jwtTokenService.GenerateAccessToken(user);
@@ -48,14 +52,14 @@ public sealed class LoginUseCase(
         await refreshTokenRepository.AddAsync(refreshTokenEntity, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        return new AuthResponse(
+        return ApiResponse<AuthResponse>.Success(new AuthResponse(
             AccessToken: accessToken.Token,
             RefreshToken: refreshToken.Token,
             User: new UserInfoResponse(
                 Id: user.Id,
                 Email: user.Email,
                 FullName: user.FullName,
-                Role: user.Role));
+                Role: user.Role)));
     }
 
     private static string HashToken(string token)

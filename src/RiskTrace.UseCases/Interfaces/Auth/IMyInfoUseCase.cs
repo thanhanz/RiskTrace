@@ -1,8 +1,9 @@
+using RiskTrace.Core.Common;
 using RiskTrace.Domain.Response;
 
 namespace RiskTrace.UseCases.Interfaces.Auth;
 
 public interface IMyInfoUseCase
 {
-    Task<MyInfoResult> ExecuteAsync(CancellationToken cancellationToken = default);
+    Task<ApiResponse<UserInfoResponse>> ExecuteAsync(CancellationToken cancellationToken = default);
 }

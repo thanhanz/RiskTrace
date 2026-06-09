@@ -1,3 +1,4 @@
+using RiskTrace.Core.Common;
 using RiskTrace.Domain.Request;
 using RiskTrace.Domain.Response;
 
@@ -5,7 +6,7 @@ namespace RiskTrace.UseCases.Interfaces.Auth;
 
 public interface IRegisterUseCase
 {
-    Task<AuthResponse> ExecuteAsync(
+    Task<ApiResponse<AuthResponse>> ExecuteAsync(
         RegisterRequest request,
         CancellationToken cancellationToken = default);
 }
