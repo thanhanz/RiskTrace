@@ -53,8 +53,15 @@ public sealed class LogoutUseCase(
             return ApiResponse<object?>.Success(null);
         }
 
+        var jti = jwtTokenService.GetClaim<string>(request.AccessToken, JwtClaimNames.Jti);
+        if (string.IsNullOrWhiteSpace(jti))
+        {
+            // Legacy access tokens without a JTI cannot be blacklisted.
+            return ApiResponse<object?>.Success(null);
+        }
+
         await tokenBlackList.AddToBlacklistAsync(
-            request.AccessToken,
+            jti,
             expiresAtUtc.Value,
             cancellationToken);
 

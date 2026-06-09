@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Options;
+using RiskTrace.Core.Common;
 using RiskTrace.Core.Interfaces;
+using RiskTrace.Domain.Constants;
 using RiskTrace.Infrastructure.Auth;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -8,12 +10,11 @@ namespace RiskTrace.Api.Middleware;
 
 public sealed class TokenBlacklistMiddleware(
     RequestDelegate next,
-    ITokenBlackList tokenBlackList,
     IOptions<JwtOptions> jwtOptions)
 {
     private readonly JwtOptions _jwtOptions = jwtOptions.Value;
 
-    public async Task InvokeAsync(HttpContext context)
+    public async Task InvokeAsync(HttpContext context, ITokenBlackList tokenBlackList)
     {
         if (context.User.Identity?.IsAuthenticated != true)
         {
@@ -33,6 +34,11 @@ public sealed class TokenBlacklistMiddleware(
         if (await tokenBlackList.ExistsAsync(jti, context.RequestAborted))
         {
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            await context.Response.WriteAsJsonAsync(
+                ApiResponse<object?>.Failure(
+                    AuthErrorCodes.Unauthorized,
+                    "Unauthenticated"),
+                context.RequestAborted);
             return;
         }
 
