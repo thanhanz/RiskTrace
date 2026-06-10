@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Options;
 using RiskTrace.Core.Common;
 using RiskTrace.Core.Interfaces;
-using RiskTrace.Domain.Constants;
 using RiskTrace.Infrastructure.Auth;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -35,8 +34,8 @@ public sealed class TokenBlacklistMiddleware(
         {
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
             await context.Response.WriteAsJsonAsync(
-                ApiResponse<object?>.Failure(
-                    AuthErrorCodes.Unauthorized,
+                new ErrorResponse(
+                    StatusCodes.Status401Unauthorized,
                     "Unauthenticated"),
                 context.RequestAborted);
             return;

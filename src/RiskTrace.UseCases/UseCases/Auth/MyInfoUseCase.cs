@@ -16,8 +16,8 @@ public sealed class MyInfoUseCase(
         if (currentUserProvider.UserId is not { } userId)
         {
             return ApiResponse<UserInfoResponse>.Failure(
-                AuthErrorCodes.Unauthorized,
-                "Unauthorized.");
+                AuthErrorCodes.UserNotFound,
+                "User not found.");
         }
 
         var user = await userRepository.GetByIdAsync(userId, cancellationToken);

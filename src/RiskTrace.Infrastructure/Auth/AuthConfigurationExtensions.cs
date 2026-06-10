@@ -81,9 +81,9 @@ internal static class AuthConfigurationExtensions
                         context.Response.StatusCode = StatusCodes.Status401Unauthorized;
 
                         await context.Response.WriteAsJsonAsync(
-                            new HttpErrorResponse(
+                            new ErrorResponse(
                                 StatusCodes.Status401Unauthorized,
-                                "unauthenticated"),
+                                "Unauthenticated"),
                             context.HttpContext.RequestAborted);
                     },
                     OnForbidden = async context =>
@@ -91,9 +91,9 @@ internal static class AuthConfigurationExtensions
                         context.Response.StatusCode = StatusCodes.Status403Forbidden;
 
                         await context.Response.WriteAsJsonAsync(
-                            new HttpErrorResponse(
+                            new ErrorResponse(
                                 StatusCodes.Status403Forbidden,
-                                "forbidden"),
+                                "Forbidden"),
                             context.HttpContext.RequestAborted);
                     }
                 };

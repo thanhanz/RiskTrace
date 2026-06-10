@@ -13,7 +13,7 @@ public sealed record ApiResponse<T>(
             Error: null);
     }
 
-    public static ApiResponse<T> Failure(string code, string message)
+    public static ApiResponse<T> Failure(int code, string message)
     {
         return new ApiResponse<T>(
             IsSuccess: false,

@@ -1,5 +1,5 @@
 namespace RiskTrace.Core.Common;
 
 public sealed record ErrorResponse(
-    string Code,
+    int Code,
     string Message);
