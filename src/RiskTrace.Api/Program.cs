@@ -20,6 +20,19 @@ public partial class Program
                 Title = "RiskTrace API",
                 Version = "v1"
             });
+
+            options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+            {
+                Type = SecuritySchemeType.Http,
+                Scheme = "bearer",
+                BearerFormat = "JWT",
+                Description = "Enter only the access token. Swagger will send it as 'Bearer {token}'."
+            });
+
+            options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+            {
+                [new OpenApiSecuritySchemeReference("Bearer", document)] = []
+            });
         });
         builder.Services.AddUseCases();
 
