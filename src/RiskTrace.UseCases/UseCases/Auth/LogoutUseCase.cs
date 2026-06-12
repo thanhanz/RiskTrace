@@ -3,7 +3,6 @@ using System.Text;
 using RiskTrace.Core.Abstractions;
 using RiskTrace.Core.Common;
 using RiskTrace.Core.Interfaces;
-using RiskTrace.Domain.Constants;
 using RiskTrace.Domain.Entities;
 using RiskTrace.Domain.Request;
 using RiskTrace.UseCases.Interfaces.Auth;
@@ -31,8 +30,7 @@ public sealed class LogoutUseCase(
         if (refreshToken is null)
         {
             return ApiResponse<object?>.Failure(
-                AuthErrorCodes.InvalidRefreshToken,
-                "Invalid refresh token.");
+                CommonErrors.BadRequest("Invalid refresh token."));
         }
 
         refreshToken.RevokedAt = DateTime.UtcNow;

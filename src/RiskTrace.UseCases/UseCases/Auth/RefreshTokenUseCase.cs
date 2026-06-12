@@ -3,7 +3,6 @@ using System.Text;
 using RiskTrace.Core.Abstractions;
 using RiskTrace.Core.Common;
 using RiskTrace.Core.Interfaces;
-using RiskTrace.Domain.Constants;
 using RiskTrace.Domain.Entities;
 using RiskTrace.Domain.Request;
 using RiskTrace.Domain.Response;
@@ -36,8 +35,7 @@ public sealed class RefreshTokenUseCase(
             currentRefreshToken.ReplacedByTokenId is not null)
         {
             return ApiResponse<AuthResponse>.Failure(
-                AuthErrorCodes.InvalidRefreshToken,
-                "Invalid refresh token.");
+                CommonErrors.BadRequest("Invalid refresh token."));
         }
 
         var user = await userReadRepository.FirstOrDefaultAsync(
@@ -47,8 +45,7 @@ public sealed class RefreshTokenUseCase(
         if (user is null || !user.IsActive)
         {
             return ApiResponse<AuthResponse>.Failure(
-                AuthErrorCodes.UserNotFound,
-                "User not found.");
+                CommonErrors.NotFound("User not found."));
         }
 
         var accessToken = jwtTokenService.GenerateAccessToken(user);

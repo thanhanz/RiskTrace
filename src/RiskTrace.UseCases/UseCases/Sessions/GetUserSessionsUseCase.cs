@@ -1,5 +1,4 @@
 using RiskTrace.Core.Common;
-using RiskTrace.Domain.Constants;
 using RiskTrace.Domain.Entities;
 using RiskTrace.Domain.Response;
 using RiskTrace.UseCases.Interfaces.Sessions;
@@ -18,8 +17,7 @@ public sealed class GetUserSessionsUseCase(
         if (currentUserProvider.UserId is not { } userId)
         {
             return ApiResponse<IReadOnlyList<SessionResponse>>.Failure(
-                SessionErrorCodes.Unauthorized,
-                "User is not authenticated.");
+                CommonErrors.Unauthorized("User is not authenticated."));
         }
 
         var sessions = await reviewSessionRepository.GetActiveByUserIdAsync(userId, cancellationToken);

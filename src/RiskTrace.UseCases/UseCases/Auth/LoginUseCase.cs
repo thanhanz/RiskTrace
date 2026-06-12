@@ -3,7 +3,6 @@ using System.Text;
 using RiskTrace.Core.Abstractions;
 using RiskTrace.Core.Common;
 using RiskTrace.Core.Interfaces;
-using RiskTrace.Domain.Constants;
 using RiskTrace.Domain.Entities;
 using RiskTrace.Domain.Request;
 using RiskTrace.Domain.Response;
@@ -32,8 +31,7 @@ public sealed class LoginUseCase(
         if (user is null || !passwordHasher.Verify(request.Password, user.PasswordHash))
         {
             return ApiResponse<AuthResponse>.Failure(
-                AuthErrorCodes.InvalidCredentials,
-                "Invalid email or password.");
+                CommonErrors.Unauthorized("Invalid email or password."));
         }
 
         var accessToken = jwtTokenService.GenerateAccessToken(user);

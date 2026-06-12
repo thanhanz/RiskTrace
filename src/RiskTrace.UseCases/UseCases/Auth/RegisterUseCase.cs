@@ -3,7 +3,6 @@ using System.Text;
 using RiskTrace.Core.Abstractions;
 using RiskTrace.Core.Common;
 using RiskTrace.Core.Interfaces;
-using RiskTrace.Domain.Constants;
 using RiskTrace.Domain.Entities;
 using RiskTrace.Domain.Enums;
 using RiskTrace.Domain.Request;
@@ -35,8 +34,7 @@ public sealed class RegisterUseCase(
         if (existingUser is not null)
         {
             return ApiResponse<AuthResponse>.Failure(
-                AuthErrorCodes.EmailExists,
-                "Email already exists.");
+                CommonErrors.Conflict("Email already exists."));
         }
 
         var user = new User

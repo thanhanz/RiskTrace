@@ -1,5 +1,4 @@
 using RiskTrace.Core.Common;
-using RiskTrace.Domain.Constants;
 using RiskTrace.Domain.Response;
 using RiskTrace.UseCases.Interfaces.Auth;
 using RiskTrace.UseCases.Ports.Auth;
@@ -16,8 +15,7 @@ public sealed class MyInfoUseCase(
         if (currentUserProvider.UserId is not { } userId)
         {
             return ApiResponse<UserInfoResponse>.Failure(
-                AuthErrorCodes.UserNotFound,
-                "User not found.");
+                CommonErrors.Unauthorized("User is not authenticated."));
         }
 
         var user = await userRepository.GetByIdAsync(userId, cancellationToken);
@@ -25,8 +23,7 @@ public sealed class MyInfoUseCase(
         if (user is null || !user.IsActive)
         {
             return ApiResponse<UserInfoResponse>.Failure(
-                AuthErrorCodes.UserNotFound,
-                "User not found.");
+                CommonErrors.NotFound("User not found."));
         }
 
         return ApiResponse<UserInfoResponse>.Success(new UserInfoResponse(

@@ -34,9 +34,7 @@ public sealed class TokenBlacklistMiddleware(
         {
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
             await context.Response.WriteAsJsonAsync(
-                new ErrorResponse(
-                    StatusCodes.Status401Unauthorized,
-                    "Unauthenticated"),
+                CommonErrors.Unauthorized("Unauthenticated"),
                 context.RequestAborted);
             return;
         }

@@ -1,5 +1,4 @@
 using RiskTrace.Core.Common;
-using RiskTrace.Domain.Constants;
 using RiskTrace.Domain.Entities;
 using RiskTrace.Domain.Response;
 using RiskTrace.UseCases.Interfaces.Sessions;
@@ -18,14 +17,16 @@ public sealed class GetSessionDetailUseCase(
     {
         if (currentUserProvider.UserId is not { } userId)
         {
-            return ApiResponse<SessionResponse>.Failure(SessionErrorCodes.Unauthorized, "User is not authenticated.");
+            return ApiResponse<SessionResponse>.Failure(
+                CommonErrors.Unauthorized("User is not authenticated."));
         }
 
         var session = await reviewSessionRepository.GetActiveByIdAsync(sessionId, userId, cancellationToken);
 
         if (session is null)
         {
-            return ApiResponse<SessionResponse>.Failure(SessionErrorCodes.SessionNotFound, "Session not found.");
+            return ApiResponse<SessionResponse>.Failure(
+                CommonErrors.NotFound("Session not found."));
         }
 
         return ApiResponse<SessionResponse>.Success(ToResponse(session));

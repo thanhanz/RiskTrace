@@ -1,6 +1,5 @@
 using RiskTrace.Core.Abstractions;
 using RiskTrace.Core.Common;
-using RiskTrace.Domain.Constants;
 using RiskTrace.Domain.Entities;
 using RiskTrace.Domain.Enums;
 using RiskTrace.Domain.Request;
@@ -23,8 +22,7 @@ public sealed class CreateSessionUseCase(
         if (currentUserProvider.UserId is not { } userId)
         {
             return ApiResponse<SessionResponse>.Failure(
-                SessionErrorCodes.Unauthorized,
-                "User is not authenticated.");
+                CommonErrors.Unauthorized("User is not authenticated."));
         }
 
         var now = DateTime.UtcNow;

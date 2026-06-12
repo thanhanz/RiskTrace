@@ -23,4 +23,12 @@ public sealed record ApiResponse<T>(
             Data: default,
             Error: new ErrorResponse(code, message));
     }
+
+    public static ApiResponse<T> Failure(ErrorResponse error)
+    {
+        return new ApiResponse<T>(
+            IsSuccess: false,
+            Data: default,
+            Error: error);
+    }
 }
