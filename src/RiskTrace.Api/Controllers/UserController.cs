@@ -11,12 +11,14 @@ namespace RiskTrace.Api.Controllers;
 public sealed class UserController(
     IMyInfoUseCase myInfoUseCase) : ApiControllerBase
 {
-    [Authorize]
-    [HttpGet("me")]
+
     [ProducesResponseType(typeof(ApiResponse<UserInfoResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<ApiResponse<UserInfoResponse>>> Me(CancellationToken cancellationToken)
+
+    [Authorize]
+    [HttpGet("me")]
+    public async Task<ActionResult<ApiResponse<UserInfoResponse>>> MyInfo(CancellationToken cancellationToken)
     {
         var result = await myInfoUseCase.ExecuteAsync(cancellationToken);
         return ToActionResult(result);

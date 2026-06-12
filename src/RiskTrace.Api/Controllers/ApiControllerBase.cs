@@ -5,9 +5,12 @@ namespace RiskTrace.Api.Controllers;
 
 public abstract class ApiControllerBase : ControllerBase
 {
-    protected ActionResult<ApiResponse<T>> ToActionResult<T>(
-        ApiResponse<T> response,
-        int successStatusCode = StatusCodes.Status200OK)
+    //<summary>
+    //
+    // Converts an ApiResponse to an ActionResult, returning the appropriate status code and response body
+    //
+    // </summary>
+    protected ActionResult<ApiResponse<T>> ToActionResult<T>(ApiResponse<T> response, int successStatusCode = StatusCodes.Status200OK)
     {
         if (response.IsSuccess)
         {
@@ -20,6 +23,7 @@ public abstract class ApiControllerBase : ControllerBase
             response.Error?.Message ?? "Request failed."));
     }
 
+    //For DELETE or requests that don't return data
     protected IActionResult ToNoContentResult(ApiResponse<object?> response)
     {
         if (response.IsSuccess)
