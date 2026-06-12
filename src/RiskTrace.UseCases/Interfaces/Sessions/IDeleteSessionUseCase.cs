@@ -1,6 +1,10 @@
+using RiskTrace.Core.Common;
+
 namespace RiskTrace.UseCases.Interfaces.Sessions;
 
 public interface IDeleteSessionUseCase
 {
-    Task ExecuteAsync(CancellationToken cancellationToken = default);
+    Task<ApiResponse<object?>> ExecuteAsync(
+        Guid sessionId,
+        CancellationToken cancellationToken = default);
 }
