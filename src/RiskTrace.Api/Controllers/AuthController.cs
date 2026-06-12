@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using RiskTrace.Core.Common;
@@ -19,9 +20,10 @@ public sealed class AuthController(
 {
     private readonly JwtOptions _jwtOptions = jwtOptions.Value;
 
-    [HttpPost("register")]
     [ProducesResponseType(typeof(ApiResponse<AuthResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+
+    [HttpPost("register")]
     public async Task<ActionResult<ApiResponse<AuthResponse>>> Register(
         [FromBody] RegisterRequest request,
         CancellationToken cancellationToken)
@@ -36,9 +38,10 @@ public sealed class AuthController(
         return ToActionResult(response);
     }
 
-    [HttpPost("login")]
     [ProducesResponseType(typeof(ApiResponse<AuthResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+
+    [HttpPost("login")]
     public async Task<ActionResult<ApiResponse<AuthResponse>>> Login(
         [FromBody] LoginRequest request,
         CancellationToken cancellationToken)
@@ -52,11 +55,12 @@ public sealed class AuthController(
 
         return ToActionResult(response);
     }
-
-    [HttpPost("refresh")]
+    
     [ProducesResponseType(typeof(ApiResponse<AuthResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+
+    [HttpPost("refresh")]
     public async Task<ActionResult<ApiResponse<AuthResponse>>> Refresh(
         [FromBody] RefreshTokenRequest request,
         CancellationToken cancellationToken)
@@ -71,9 +75,10 @@ public sealed class AuthController(
         return ToActionResult(response);
     }
 
-    [HttpPost("logout")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+
+    [HttpPost("logout")]
     public async Task<IActionResult> Logout(
         [FromBody] LogoutRequest request,
         CancellationToken cancellationToken)

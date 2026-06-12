@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
+using Microsoft.OpenApi.Models;
 using RiskTrace.Api.Middleware;
+using RiskTrace.Api.Swagger;
 using RiskTrace.Infrastructure;
 using RiskTrace.Infrastructure.Persistence;
 using RiskTrace.UseCases;
@@ -23,16 +25,16 @@ public partial class Program
 
             options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
             {
+                Name = "Authorization",
                 Type = SecuritySchemeType.Http,
                 Scheme = "bearer",
                 BearerFormat = "JWT",
-                Description = "Enter only the access token. Swagger will send it as 'Bearer {token}'."
+                In = ParameterLocation.Header,
             });
 
-            options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
-            {
-                [new OpenApiSecuritySchemeReference("Bearer", document)] = []
-            });
+            options.OperationFilter<AuthorizeOperationFilter>();
+
+
         });
         builder.Services.AddUseCases();
 

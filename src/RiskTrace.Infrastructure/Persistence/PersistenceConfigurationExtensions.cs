@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using RiskTrace.Core.Abstractions;
 using RiskTrace.Core.Interfaces;
 using RiskTrace.Infrastructure.Persistence.Repositories;
 using RiskTrace.UseCases.Ports.Repositories;
