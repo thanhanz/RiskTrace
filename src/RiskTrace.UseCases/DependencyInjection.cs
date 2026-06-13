@@ -19,6 +19,7 @@ public static class DependencyInjection
         services.AddScoped<IRefreshTokenUseCase, RefreshTokenUseCase>();
         services.AddScoped<IRegisterUseCase, RegisterUseCase>();
         //Messages
+        services.AddScoped<IGetSessionMessagesUseCase, GetSessionMessagesUseCase>();
         services.AddScoped<ISendMessageUseCase, SendMessageUseCase>();
         //Sessions
         services.AddScoped<ICreateSessionUseCase, CreateSessionUseCase>();

@@ -1,6 +1,12 @@
+using RiskTrace.Core.Common;
+using RiskTrace.Domain.Response;
+
 namespace RiskTrace.UseCases.Interfaces.Messages;
 
 public interface IGetSessionMessagesUseCase
 {
-    Task ExecuteAsync(CancellationToken cancellationToken = default);
+    Task<ApiResponse<PaginatedResult<MessageResponse>>> ExecuteAsync(
+        Guid sessionId,
+        PaginationRequest pagination,
+        CancellationToken cancellationToken = default);
 }

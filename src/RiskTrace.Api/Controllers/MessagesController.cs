@@ -12,8 +12,27 @@ namespace RiskTrace.Api.Controllers;
 [Authorize]
 [Route("api/v1/sessions/{sessionId:guid}/messages")]
 public sealed class MessagesController(
+    IGetSessionMessagesUseCase getSessionMessagesUseCase,
     ISendMessageUseCase sendMessageUseCase) : ApiControllerBase
 {
+    [ProducesResponseType(typeof(ApiResponse<PaginatedResult<MessageResponse>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [HttpGet]
+    public async Task<ActionResult<ApiResponse<PaginatedResult<MessageResponse>>>> GetBySessionId(
+        Guid sessionId,
+        [FromQuery] PaginationRequest pagination,
+        CancellationToken cancellationToken)
+    {
+        var response = await getSessionMessagesUseCase.ExecuteAsync(
+            sessionId,
+            pagination,
+            cancellationToken);
+
+        return ToActionResult(response);
+    }
+
     [ProducesResponseType(typeof(ApiResponse<MessageResponse>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
