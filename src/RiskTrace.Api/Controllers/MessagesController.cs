@@ -22,9 +22,15 @@ public sealed class MessagesController(
     [HttpGet]
     public async Task<ActionResult<ApiResponse<PaginatedResult<MessageResponse>>>> GetBySessionId(
         Guid sessionId,
-        [FromQuery] PaginationRequest pagination,
+        [FromQuery] GetSessionMessagesRequest request,
         CancellationToken cancellationToken)
     {
+        var pagination = new PaginationRequest
+        {
+            Limit = request.PageSize,
+            Cursor = request.NextCursor
+        };
+
         var response = await getSessionMessagesUseCase.ExecuteAsync(
             sessionId,
             pagination,
