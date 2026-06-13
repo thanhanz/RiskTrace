@@ -1,7 +1,9 @@
 using Microsoft.Extensions.DependencyInjection;
 using RiskTrace.UseCases.Interfaces.Auth;
+using RiskTrace.UseCases.Interfaces.Messages;
 using RiskTrace.UseCases.Interfaces.Sessions;
 using RiskTrace.UseCases.UseCases.Auth;
+using RiskTrace.UseCases.UseCases.Messages;
 using RiskTrace.UseCases.UseCases.Sessions;
 
 namespace RiskTrace.UseCases;
@@ -16,6 +18,8 @@ public static class DependencyInjection
         services.AddScoped<IMyInfoUseCase, MyInfoUseCase>();
         services.AddScoped<IRefreshTokenUseCase, RefreshTokenUseCase>();
         services.AddScoped<IRegisterUseCase, RegisterUseCase>();
+        //Messages
+        services.AddScoped<ISendMessageUseCase, SendMessageUseCase>();
         //Sessions
         services.AddScoped<ICreateSessionUseCase, CreateSessionUseCase>();
         services.AddScoped<IGetUserSessionsUseCase, GetUserSessionsUseCase>();
