@@ -4,6 +4,7 @@ public sealed class PaginatedResult<T>
 {
     public IReadOnlyList<T> Items { get; }
 
+    //Offset Pagination
     public int TotalCount { get; }
 
     public int PageNumber { get; }
@@ -15,7 +16,10 @@ public sealed class PaginatedResult<T>
 
     public bool HasPreviousPage => PageNumber > 1;
 
-    public bool HasNextPage => PageNumber < TotalPages;
+    //Cursor Pagination
+    public bool HasNextPage { get; }
+
+    public string? NextCursor { get; }
 
     public PaginatedResult(
         IReadOnlyList<T> items,
@@ -27,5 +31,19 @@ public sealed class PaginatedResult<T>
         TotalCount = totalCount;
         PageNumber = pageNumber;
         PageSize = pageSize;
+        HasNextPage = PageNumber < TotalPages;
+    }
+
+    public PaginatedResult(
+        IReadOnlyList<T> items,
+        string? nextCursor,
+        bool hasNextPage)
+    {
+        Items = items;
+        TotalCount = 0;
+        PageNumber = 1;
+        PageSize = items.Count;
+        NextCursor = nextCursor;
+        HasNextPage = hasNextPage;
     }
 }
