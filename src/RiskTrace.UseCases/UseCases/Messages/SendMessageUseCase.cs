@@ -63,8 +63,6 @@ public sealed class SendMessageUseCase(
             Id: message.Id,
             SessionId: message.SessionId,
             Role: message.Role,
-            Content: message.Content,
-            CreatedAt: message.CreatedAt,
-            UpdatedAt: message.UpdatedAt);
+            Content: message.Content);
     }
 }
