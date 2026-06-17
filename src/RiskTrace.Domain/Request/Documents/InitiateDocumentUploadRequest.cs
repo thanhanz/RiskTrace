@@ -1,6 +1,8 @@
+using Microsoft.AspNetCore.Http;
+
 namespace RiskTrace.Domain.Request.Documents;
 
-public sealed record InitiateDocumentUploadRequest(
-    string FileName,
-    string ContentType,
-    long FileSize);
+public class InitiateDocumentUploadRequest
+{
+    public IFormFile File { get; set; }
+}

@@ -35,20 +35,20 @@ public sealed class InitiateDocumentUploadUseCase(
                 CommonErrors.NotFound("Session not found."));
         }
 
-        var fileName = NormalizeFileName(request.FileName);
+        var fileName = NormalizeFileName(request.File.FileName);
         if (string.IsNullOrWhiteSpace(fileName))
         {
             return ApiResponse<DocumentUploadResponse>.Failure(
-                CommonErrors.FieldRequired(nameof(request.FileName)));
+                CommonErrors.FieldRequired(nameof(request.File.FileName)));
         }
 
-        if (!string.Equals(request.ContentType, PdfContentType, StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(request.File.ContentType, PdfContentType, StringComparison.OrdinalIgnoreCase))
         {
             return ApiResponse<DocumentUploadResponse>.Failure(
                 CommonErrors.BadRequest("Only PDF files are supported."));
         }
 
-        if (request.FileSize <= 0)
+        if (request.File.Length <= 0)
         {
             return ApiResponse<DocumentUploadResponse>.Failure(
                 CommonErrors.BadRequest("File size must be greater than zero."));
@@ -57,11 +57,12 @@ public sealed class InitiateDocumentUploadUseCase(
         var documentId = Guid.NewGuid();
         var objectKey = BuildObjectKey(userId, sessionId, documentId, fileName);
 
-        if (request.FileSize <= cloudStorage.MultipartThresholdBytes)
+        //For small file size -> no need chunking
+        if (request.File.Length <= cloudStorage.MultipartThresholdBytes)
         {
             var upload = await cloudStorage.CreatePresignedUploadUrlAsync(
                 objectKey,
-                request.ContentType,
+                request.File.ContentType,
                 cancellationToken);
 
             return ApiResponse<DocumentUploadResponse>.Success(new DocumentUploadResponse(
@@ -75,7 +76,8 @@ public sealed class InitiateDocumentUploadUseCase(
                 ExpiresAt: upload.ExpiresAt));
         }
 
-        var partCount = (int)Math.Ceiling((double)request.FileSize / cloudStorage.MultipartPartSizeBytes);
+        //For large file size -> Need chunking
+        var partCount = (int)Math.Ceiling((double)request.File.Length / cloudStorage.MultipartPartSizeBytes);
         if (partCount > MaxMultipartParts)
         {
             return ApiResponse<DocumentUploadResponse>.Failure(
@@ -84,7 +86,7 @@ public sealed class InitiateDocumentUploadUseCase(
 
         var multipartUpload = await cloudStorage.CreateMultipartUploadAsync(
             objectKey,
-            request.ContentType,
+            request.File.ContentType,
             cancellationToken);
 
         var parts = await cloudStorage.CreatePresignedPartUploadUrlsAsync(
