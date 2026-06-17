@@ -18,7 +18,7 @@ public static class DependencyInjection
         services.AddJwtBearerAuthentication(configuration);
         services.AddInfrastructureRepositories();
         services.AddAuthServices();
-        services.AddExternalServices();
+        services.AddExternalServices(configuration);
         services.AddHttpContextAccessor();
 
         return services;
