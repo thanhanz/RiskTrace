@@ -8,3 +8,5 @@ obj/
 *.db
 *.cache
 AGENTS.md
+appsettings.Development.json
+appsettings.json
