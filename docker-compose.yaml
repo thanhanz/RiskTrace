@@ -15,6 +15,14 @@ services:
       Database__Provider: PostgreSQL
       ConnectionStrings__DefaultConnection: Host=risktrace.db;Port=5432;Database=risktrace_db;Username=postgres;Password=1234
       ConnectionStrings__Redis: risktrace.redis:6379
+      Storage__R2__AccountId: ${R2_ACCOUNT_ID}
+      Storage__R2__AccessKeyId: ${R2_ACCESS_KEY_ID}
+      Storage__R2__SecretAccessKey: ${R2_SECRET_ACCESS_KEY}
+      Storage__R2__BucketName: ${R2_BUCKET_NAME}
+      Storage__R2__PublicBaseUrl: ${R2_PUBLIC_BASE_URL}
+      Storage__R2__PresignedUrlMinutes: 15
+      Storage__R2__MultipartThresholdBytes: 26214400
+      Storage__R2__MultipartPartSizeBytes: 8388608
     ports:
       - "8080:8080"
 
