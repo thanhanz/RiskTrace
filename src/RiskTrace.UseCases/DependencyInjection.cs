@@ -1,8 +1,10 @@
 using Microsoft.Extensions.DependencyInjection;
 using RiskTrace.UseCases.Interfaces.Auth;
+using RiskTrace.UseCases.Interfaces.Documents;
 using RiskTrace.UseCases.Interfaces.Messages;
 using RiskTrace.UseCases.Interfaces.Sessions;
 using RiskTrace.UseCases.UseCases.Auth;
+using RiskTrace.UseCases.UseCases.Documents;
 using RiskTrace.UseCases.UseCases.Messages;
 using RiskTrace.UseCases.UseCases.Sessions;
 
@@ -27,6 +29,9 @@ public static class DependencyInjection
         services.AddScoped<IGetSessionDetailUseCase, GetSessionDetailUseCase>();
         services.AddScoped<IRenameSessionUseCase, RenameSessionUseCase>();
         services.AddScoped<IDeleteSessionUseCase, DeleteSessionUseCase>();
+        //Documents
+        services.AddScoped<IInitiateDocumentUploadUseCase, InitiateDocumentUploadUseCase>();
+        services.AddScoped<ICompleteDocumentUploadUseCase, CompleteDocumentUploadUseCase>();
 
         return services;
     }
