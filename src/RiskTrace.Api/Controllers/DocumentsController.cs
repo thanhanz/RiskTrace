@@ -18,12 +18,11 @@ public sealed class DocumentsController(
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
-    [Consumes("multipart/form-data")]
-    
+
     [HttpPost("upload/initiate")]
     public async Task<ActionResult<ApiResponse<DocumentUploadResponse>>> InitiateUpload(
         Guid sessionId,
-        [FromForm] InitiateDocumentUploadRequest request,
+        [FromBody] InitiateDocumentUploadRequest request,
         CancellationToken cancellationToken)
     {
         var response = await initiateDocumentUploadUseCase.ExecuteAsync(
