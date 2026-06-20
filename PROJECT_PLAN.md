@@ -6,7 +6,7 @@
 - Current business scope: Real estate contract risk detection under current Vietnamese law.
 - Current technical focus: ASP.NET Core backend architecture, authentication, persistence, session/message workflow, and document workflow completion.
 - Next phase: AI service implementation and RAG-based legal risk analysis.
-- Last updated: 2026-06-14
+- Last updated: 2026-06-20
 
 ## Milestones
 | Milestone | Target Date | Status |
@@ -36,12 +36,12 @@
 | Redis token blacklist | Done | Redis is wired for token blacklist support during logout. |
 | Docker Compose deployment scaffold | Done | API, PostgreSQL, and Redis services are defined. |
 | Review session management | Done | Create, list, detail, rename, and soft-delete session APIs are implemented with authenticated ownership checks. |
-| Document upload and local storage | In Progress | Storage boundary exists, but upload workflow and controller implementation need completion. |
-| Document analysis workflow | Planned | Intended to connect uploaded contracts with future AI/RAG analysis. |
-| Message/chat workflow | In Progress | Create message API and get-by-session cursor pagination API are implemented using UUIDv7 ordering by `Id`. |
+| Document upload and local storage | Done | Upload workflow and controller implementation are completed, with local storage handling in place. |
+| Message/chat workflow | Done | Create message API and get-by-session cursor pagination API are implemented using UUIDv7 ordering by `Id`. |
+| Document analysis workflow | In Progress | Next step is to connect the backend to the AI service before implementing the AI workflow itself. |
+| External legal AI service integration | In Progress | Backend-to-AI service connection is the next active step. |
 | Review result generation and retrieval | Planned | Domain and repository structure exist, but AI-backed result generation is not implemented yet. |
-| External legal AI service integration | Planned | `LegalAiHttpClient` boundary exists; real integration is planned for the next phase. |
-| AI service implementation | Planned | `ai-service` exists as a placeholder. |
+| AI service implementation | Planned | `ai-service` exists as a placeholder and will be implemented after the service connection is working. |
 | Feature plan backlog | Planned | New technologies and future improvements will be added here as the project evolves. |
 
 ## Feature Plan Backlog
@@ -68,16 +68,18 @@
 
 ## Next Actions
 - [x] Implement review session create/list/detail/rename/delete workflow. (Completed: 2026-06-12)
-- [ ] Implement document upload and attach documents to review sessions. (Due: 2026-06-17)
-- [ ] Complete document repository, use cases, and controller endpoints. (Due: 2026-06-17)
+- [x] Implement document upload and attach documents to review sessions. (Completed: 2026-06-20)
+- [x] Complete document repository, use cases, and controller endpoints. (Completed: 2026-06-20)
 - [x] Implement message list/send workflow for review sessions. (Completed: 2026-06-14)
-- [ ] Implement review result create/retrieve workflow using a placeholder AI response first. (Due: 2026-06-22)
-- [ ] Decide whether message repository should stay feature-specific or move to generic repository usage. (Due: 2026-06-18)
-- [ ] Update README to match the completed backend MVP status. (Due: 2026-06-29)
-- [ ] Define AI service API contract and RAG architecture for the next phase. (Due: 2026-07-06)
+- [ ] Connect backend to AI service. (Due: 2026-06-24)
+- [ ] Define AI service API contract and RAG architecture for the next phase. (Due: 2026-06-27)
+- [ ] Implement AI service workflow after backend connection succeeds. (Due: 2026-07-01)
+- [ ] Implement review result create/retrieve workflow using the AI service output. (Due: 2026-07-08)
 
 ## Change Log
 | Date | Change |
 | --- | --- |
 | 2026-06-09 | Created initial solo project plan based on repository scan and owner input. |
 | 2026-06-14 | Updated progress to reflect completed session CRUD, implemented message send/list APIs, and remaining document/review result work. |
+| 2026-06-20 | Updated feature progress to mark document upload, local storage, and message workflow as complete; next step is backend-to-AI service integration. |
+| 2026-06-20 | Updated next actions to mark backend MVP items complete and reorder the remaining AI integration steps. |
