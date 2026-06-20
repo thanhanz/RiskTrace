@@ -1,11 +1,15 @@
+using Microsoft.Extensions.Logging;
 using RiskTrace.Core.Abstractions;
 using RiskTrace.Core.Common;
 using RiskTrace.Domain.Entities;
 using RiskTrace.Domain.Enums;
+using RiskTrace.Domain.Events;
+using RiskTrace.Domain.Messaging;
 using RiskTrace.Domain.Request.Documents;
 using RiskTrace.Domain.Response.Documents;
 using RiskTrace.UseCases.Interfaces.Documents;
 using RiskTrace.UseCases.Ports.Auth;
+using RiskTrace.UseCases.Ports.Messaging;
 using RiskTrace.UseCases.Ports.Repositories;
 using RiskTrace.UseCases.Ports.Storage;
 
@@ -16,7 +20,9 @@ public sealed class CompleteDocumentUploadUseCase(
     IReviewSessionRepository reviewSessionRepository,
     IDocumentRepository documentRepository,
     ICloudStorage cloudStorage,
-    IUnitOfWork unitOfWork) : ICompleteDocumentUploadUseCase
+    IUnitOfWork unitOfWork,
+    IMessageQueueService messageQueueService,
+    ILogger<CompleteDocumentUploadUseCase> logger) : ICompleteDocumentUploadUseCase
 {
     private const string PdfContentType = "application/pdf";
 
@@ -82,7 +88,39 @@ public sealed class CompleteDocumentUploadUseCase(
         await documentRepository.AddAsync(document, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
+        await PublishDocumentUploadedAsync(document, userId, cancellationToken);
+
         return ApiResponse<DocumentResponse>.Success(ToResponse(document));
+    }
+
+    private async Task PublishDocumentUploadedAsync(
+        Document document,
+        Guid userId,
+        CancellationToken cancellationToken)
+    {
+        var event = new DocumentUploadedEvent
+        {
+            DocumentId = document.Id,
+            SessionId = document.SessionId,
+            UserId = userId,
+            StoragePath = document.FilePath,
+            FileName = document.FileName
+        };
+
+        try
+        {
+            await messageQueueService.PublishAsync(
+                MessagingConstants.RoutingKeys.DocumentUploadedRequest,
+                event,
+                cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(
+                ex,
+                "Failed to publish document upload event for document {DocumentId}.",
+                document.Id);
+        }
     }
 
     private static ErrorResponse? ValidateRequest(
