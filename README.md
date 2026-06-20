@@ -61,10 +61,9 @@ src/
 ### Dependency Direction
 
 ```text
-Api -> UseCases
-Infrastructure -> UseCases
+Api -> UseCases, Core
+Infrastructure -> UseCases, Domain, Core
 UseCases -> Domain, Core
-Infrastructure -> Domain, Core
 Domain -> Core
 ```
 
