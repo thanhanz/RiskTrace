@@ -1,4 +1,5 @@
 using RiskTrace.Core.Common;
+using RiskTrace.Core.Interfaces.Logger;
 using RiskTrace.Domain.Entities;
 using RiskTrace.Domain.Response;
 using RiskTrace.UseCases.Interfaces.Messages;
@@ -10,15 +11,23 @@ namespace RiskTrace.UseCases.UseCases.Messages;
 public sealed class GetSessionMessagesUseCase(
     ICurrentUserProvider currentUserProvider,
     IReviewSessionRepository reviewSessionRepository,
-    IMessageRepository messageRepository) : IGetSessionMessagesUseCase
+    IMessageRepository messageRepository,
+    ILogger<GetSessionMessagesUseCase> logger) : IGetSessionMessagesUseCase
 {
     public async Task<ApiResponse<PaginatedResult<MessageResponse>>> ExecuteAsync(
         Guid sessionId,
         PaginationRequest pagination,
         CancellationToken cancellationToken = default)
     {
+        logger.LogInformation(
+            "Handling get session messages request for session {SessionId} with cursor {Cursor} and limit {Limit}.",
+            sessionId,
+            pagination.Cursor ?? string.Empty,
+            pagination.Limit);
+
         if (currentUserProvider.UserId is not { } userId)
         {
+            logger.LogWarning("Get session messages failed for session {SessionId}: user is not authenticated.", sessionId);
             return ApiResponse<PaginatedResult<MessageResponse>>.Failure(
                 CommonErrors.Unauthorized("User is not authenticated."));
         }
@@ -26,6 +35,10 @@ public sealed class GetSessionMessagesUseCase(
         var session = await reviewSessionRepository.GetActiveByIdAsync(sessionId, userId, cancellationToken);
         if (session is null)
         {
+            logger.LogWarning(
+                "Get session messages failed for session {SessionId} and user {UserId}: session not found.",
+                sessionId,
+                userId);
             return ApiResponse<PaginatedResult<MessageResponse>>.Failure(
                 CommonErrors.NotFound("Session not found."));
         }
@@ -35,6 +48,10 @@ public sealed class GetSessionMessagesUseCase(
         {
             if (!Guid.TryParse(pagination.Cursor, out var parsedCursor))
             {
+                logger.LogWarning(
+                    "Get session messages failed for session {SessionId}: cursor {Cursor} is invalid.",
+                    sessionId,
+                    pagination.Cursor);
                 return ApiResponse<PaginatedResult<MessageResponse>>.Failure(
                     CommonErrors.BadRequest("Cursor is invalid."));
             }
@@ -59,6 +76,12 @@ public sealed class GetSessionMessagesUseCase(
         var nextCursor = hasNextPage
             ? pageItems[^1].Id.ToString()
             : null;
+
+        logger.LogInformation(
+            "Get session messages succeeded for session {SessionId}: returned {MessageCount} messages, hasNextPage {HasNextPage}.",
+            sessionId,
+            pageItems.Count,
+            hasNextPage);
 
         return ApiResponse<PaginatedResult<MessageResponse>>.Success(
             new PaginatedResult<MessageResponse>(

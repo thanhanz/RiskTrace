@@ -1,5 +1,6 @@
 using RiskTrace.Core.Abstractions;
 using RiskTrace.Core.Common;
+using RiskTrace.Core.Interfaces.Logger;
 using RiskTrace.Domain.Entities;
 using RiskTrace.Domain.Enums;
 using RiskTrace.Domain.Response;
@@ -13,7 +14,8 @@ public sealed class SendMessageUseCase(
     ICurrentUserProvider currentUserProvider,
     IReviewSessionRepository reviewSessionRepository,
     IMessageRepository messageRepository,
-    IUnitOfWork unitOfWork) : ISendMessageUseCase
+    IUnitOfWork unitOfWork,
+    ILogger<SendMessageUseCase> logger) : ISendMessageUseCase
 {
     public async Task<ApiResponse<MessageResponse>> ExecuteAsync(
         Guid sessionId,
@@ -21,14 +23,21 @@ public sealed class SendMessageUseCase(
         MessageRole role,
         CancellationToken cancellationToken = default)
     {
+        logger.LogInformation(
+            "Handling send message request for session {SessionId} with role {Role}.",
+            sessionId,
+            role);
+
         if (currentUserProvider.UserId is not { } userId)
         {
+            logger.LogWarning("Send message failed for session {SessionId}: user is not authenticated.", sessionId);
             return ApiResponse<MessageResponse>.Failure(
                 CommonErrors.Unauthorized("User is not authenticated."));
         }
 
         if (string.IsNullOrWhiteSpace(content))
         {
+            logger.LogWarning("Send message failed for session {SessionId}: content is required.", sessionId);
             return ApiResponse<MessageResponse>.Failure(
                 CommonErrors.FieldRequired("Content"));
         }
@@ -36,6 +45,10 @@ public sealed class SendMessageUseCase(
         var session = await reviewSessionRepository.GetActiveByIdAsync(sessionId, userId, cancellationToken);
         if (session is null)
         {
+            logger.LogWarning(
+                "Send message failed for session {SessionId} and user {UserId}: session not found.",
+                sessionId,
+                userId);
             return ApiResponse<MessageResponse>.Failure(
                 CommonErrors.NotFound("Session not found."));
         }
@@ -53,6 +66,11 @@ public sealed class SendMessageUseCase(
 
         await messageRepository.AddAsync(message, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation(
+            "Send message succeeded for session {SessionId} with message {MessageId}.",
+            sessionId,
+            message.Id);
 
         return ApiResponse<MessageResponse>.Success(ToResponse(message));
     }
