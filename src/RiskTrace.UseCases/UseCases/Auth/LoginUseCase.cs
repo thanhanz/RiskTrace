@@ -3,6 +3,7 @@ using System.Text;
 using RiskTrace.Core.Abstractions;
 using RiskTrace.Core.Common;
 using RiskTrace.Core.Interfaces;
+using RiskTrace.Core.Interfaces.Logger;
 using RiskTrace.Domain.Entities;
 using RiskTrace.Domain.Request;
 using RiskTrace.Domain.Response;
@@ -16,13 +17,15 @@ public sealed class LoginUseCase(
     IRepository<RefreshToken> refreshTokenRepository,
     IPasswordHasher passwordHasher,
     IJwtTokenService jwtTokenService,
-    IUnitOfWork unitOfWork) : ILoginUseCase
+    IUnitOfWork unitOfWork,
+    ILogger<LoginUseCase> logger) : ILoginUseCase
 {
     public async Task<ApiResponse<AuthResponse>> ExecuteAsync(
         LoginRequest request,
         CancellationToken cancellationToken = default)
     {
         var email = request.Email.Trim();
+        logger.LogInformation("Handling login request for email {Email}.", email);
 
         var user = await userReadRepository.FirstOrDefaultAsync(
             entity => entity.Email == email,
@@ -30,6 +33,7 @@ public sealed class LoginUseCase(
 
         if (user is null || !passwordHasher.Verify(request.Password, user.PasswordHash))
         {
+            logger.LogWarning("Login failed for email {Email}: invalid credentials.", email);
             return ApiResponse<AuthResponse>.Failure(
                 CommonErrors.Unauthorized("Invalid email or password."));
         }
@@ -49,6 +53,8 @@ public sealed class LoginUseCase(
 
         await refreshTokenRepository.AddAsync(refreshTokenEntity, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation("Login succeeded for user {UserId}.", user.Id);
 
         return ApiResponse<AuthResponse>.Success(new AuthResponse(
             AccessToken: accessToken.Token,

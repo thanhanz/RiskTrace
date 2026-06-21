@@ -3,6 +3,7 @@ using System.Text;
 using RiskTrace.Core.Abstractions;
 using RiskTrace.Core.Common;
 using RiskTrace.Core.Interfaces;
+using RiskTrace.Core.Interfaces.Logger;
 using RiskTrace.Domain.Entities;
 using RiskTrace.Domain.Request;
 using RiskTrace.Domain.Response;
@@ -16,12 +17,14 @@ public sealed class RefreshTokenUseCase(
     IReadRepository<User> userReadRepository,
     IRepository<RefreshToken> refreshTokenRepository,
     IJwtTokenService jwtTokenService,
-    IUnitOfWork unitOfWork) : IRefreshTokenUseCase
+    IUnitOfWork unitOfWork,
+    ILogger<RefreshTokenUseCase> logger) : IRefreshTokenUseCase
 {
     public async Task<ApiResponse<AuthResponse>> ExecuteAsync(
         RefreshTokenRequest request,
         CancellationToken cancellationToken = default)
     {
+        logger.LogInformation("Handling refresh-token request.");
         var tokenHash = HashToken(request.RefreshToken);
 
         var currentRefreshToken = await refreshTokenReadRepository.FirstOrDefaultAsync(
@@ -34,6 +37,7 @@ public sealed class RefreshTokenUseCase(
             !currentRefreshToken.IsActive ||
             currentRefreshToken.ReplacedByTokenId is not null)
         {
+            logger.LogWarning("Refresh-token request failed: refresh token is invalid or inactive.");
             return ApiResponse<AuthResponse>.Failure(
                 CommonErrors.BadRequest("Invalid refresh token."));
         }
@@ -44,6 +48,7 @@ public sealed class RefreshTokenUseCase(
 
         if (user is null || !user.IsActive)
         {
+            logger.LogWarning("Refresh-token request failed for user {UserId}: user not found or inactive.", currentRefreshToken.UserId);
             return ApiResponse<AuthResponse>.Failure(
                 CommonErrors.NotFound("User not found."));
         }
@@ -69,6 +74,8 @@ public sealed class RefreshTokenUseCase(
         await refreshTokenRepository.UpdateAsync(currentRefreshToken, cancellationToken);
         await refreshTokenRepository.AddAsync(newRefreshTokenEntity, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation("Refresh-token request succeeded for user {UserId}.", user.Id);
 
         return ApiResponse<AuthResponse>.Success(new AuthResponse(
             AccessToken: accessToken.Token,

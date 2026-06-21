@@ -3,6 +3,7 @@ using System.Text;
 using RiskTrace.Core.Abstractions;
 using RiskTrace.Core.Common;
 using RiskTrace.Core.Interfaces;
+using RiskTrace.Core.Interfaces.Logger;
 using RiskTrace.Domain.Entities;
 using RiskTrace.Domain.Enums;
 using RiskTrace.Domain.Request;
@@ -18,7 +19,8 @@ public sealed class RegisterUseCase(
     IRepository<RefreshToken> refreshTokenRepository,
     IPasswordHasher passwordHasher,
     IJwtTokenService jwtTokenService,
-    IUnitOfWork unitOfWork) : IRegisterUseCase
+    IUnitOfWork unitOfWork,
+    ILogger<RegisterUseCase> logger) : IRegisterUseCase
 {
     public async Task<ApiResponse<AuthResponse>> ExecuteAsync(
         RegisterRequest request,
@@ -26,6 +28,7 @@ public sealed class RegisterUseCase(
     {
         var email = request.Email.Trim();
         var fullName = request.FullName.Trim();
+        logger.LogInformation("Handling register request for email {Email}.", email);
 
         var existingUser = await userReadRepository.FirstOrDefaultAsync(
             user => user.Email == email,
@@ -33,6 +36,7 @@ public sealed class RegisterUseCase(
 
         if (existingUser is not null)
         {
+            logger.LogWarning("Register request failed for email {Email}: email already exists.", email);
             return ApiResponse<AuthResponse>.Failure(
                 CommonErrors.Conflict("Email already exists."));
         }
@@ -64,6 +68,8 @@ public sealed class RegisterUseCase(
         await userRepository.AddAsync(user, cancellationToken);
         await refreshTokenRepository.AddAsync(refreshTokenEntity, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation("Register request succeeded for user {UserId}.", user.Id);
 
         return ApiResponse<AuthResponse>.Success(new AuthResponse(
             AccessToken: accessToken.Token,
