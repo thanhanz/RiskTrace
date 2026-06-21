@@ -1,6 +1,6 @@
-using Microsoft.Extensions.Logging;
 using RiskTrace.Core.Abstractions;
 using RiskTrace.Core.Common;
+using RiskTrace.Core.Interfaces.Logger;
 using RiskTrace.Domain.Entities;
 using RiskTrace.Domain.Enums;
 using RiskTrace.Domain.Events;
@@ -31,8 +31,17 @@ public sealed class CompleteDocumentUploadUseCase(
         CompleteDocumentUploadRequest request,
         CancellationToken cancellationToken = default)
     {
+        logger.LogInformation(
+            "Handling complete document upload request for session {SessionId} and document {DocumentId}.",
+            sessionId,
+            request.DocumentId);
+
         if (currentUserProvider.UserId is not { } userId)
         {
+            logger.LogWarning(
+                "Complete document upload failed for session {SessionId} and document {DocumentId}: user is not authenticated.",
+                sessionId,
+                request.DocumentId);
             return ApiResponse<DocumentResponse>.Failure(
                 CommonErrors.Unauthorized("User is not authenticated."));
         }
@@ -40,6 +49,11 @@ public sealed class CompleteDocumentUploadUseCase(
         var session = await reviewSessionRepository.GetActiveByIdAsync(sessionId, userId, cancellationToken);
         if (session is null)
         {
+            logger.LogWarning(
+                "Complete document upload failed for session {SessionId}, document {DocumentId}, user {UserId}: session not found.",
+                sessionId,
+                request.DocumentId,
+                userId);
             return ApiResponse<DocumentResponse>.Failure(
                 CommonErrors.NotFound("Session not found."));
         }
@@ -47,6 +61,11 @@ public sealed class CompleteDocumentUploadUseCase(
         var validationError = ValidateRequest(request, userId, sessionId);
         if (validationError is not null)
         {
+            logger.LogWarning(
+                "Complete document upload failed validation for session {SessionId} and document {DocumentId}: {ErrorMessage}.",
+                sessionId,
+                request.DocumentId,
+                validationError.Message);
             return ApiResponse<DocumentResponse>.Failure(validationError);
         }
 
@@ -55,12 +74,20 @@ public sealed class CompleteDocumentUploadUseCase(
             var objectExists = await cloudStorage.ObjectExistsAsync(request.ObjectKey, cancellationToken);
             if (!objectExists)
             {
+                logger.LogWarning(
+                    "Complete document upload failed for document {DocumentId}: uploaded object {ObjectKey} was not found.",
+                    request.DocumentId,
+                    request.ObjectKey);
                 return ApiResponse<DocumentResponse>.Failure(
                     CommonErrors.BadRequest("Uploaded file was not found in cloud storage."));
             }
         }
         else
         {
+            logger.LogInformation(
+                "Completing multipart upload for document {DocumentId} with upload id {UploadId}.",
+                request.DocumentId,
+                request.UploadId ?? string.Empty);
             await cloudStorage.CompleteMultipartUploadAsync(
                 request.ObjectKey,
                 request.UploadId!,
@@ -90,6 +117,11 @@ public sealed class CompleteDocumentUploadUseCase(
 
         await PublishDocumentUploadedAsync(document, userId, cancellationToken);
 
+        logger.LogInformation(
+            "Complete document upload succeeded for document {DocumentId} in session {SessionId}.",
+            document.Id,
+            sessionId);
+
         return ApiResponse<DocumentResponse>.Success(ToResponse(document));
     }
 
@@ -113,6 +145,10 @@ public sealed class CompleteDocumentUploadUseCase(
                 MessagingConstants.RoutingKeys.DocumentUploadedRequest,
                 event,
                 cancellationToken);
+
+            logger.LogInformation(
+                "Published document uploaded event for document {DocumentId}.",
+                document.Id);
         }
         catch (Exception ex)
         {

@@ -1,4 +1,5 @@
 using RiskTrace.Core.Common;
+using RiskTrace.Core.Interfaces.Logger;
 using RiskTrace.Domain.Enums;
 using RiskTrace.Domain.Request.Documents;
 using RiskTrace.Domain.Response.Documents;
@@ -12,7 +13,8 @@ namespace RiskTrace.UseCases.UseCases.Documents;
 public sealed class InitiateDocumentUploadUseCase(
     ICurrentUserProvider currentUserProvider,
     IReviewSessionRepository reviewSessionRepository,
-    ICloudStorage cloudStorage) : IInitiateDocumentUploadUseCase
+    ICloudStorage cloudStorage,
+    ILogger<InitiateDocumentUploadUseCase> logger) : IInitiateDocumentUploadUseCase
 {
     private const int MaxMultipartParts = 10_000;
     private const string PdfContentType = "application/pdf";
@@ -22,8 +24,14 @@ public sealed class InitiateDocumentUploadUseCase(
         InitiateDocumentUploadRequest request,
         CancellationToken cancellationToken = default)
     {
+        logger.LogInformation(
+            "Handling initiate document upload request for session {SessionId} and file {FileName}.",
+            sessionId,
+            request.FileName ?? string.Empty);
+
         if (currentUserProvider.UserId is not { } userId)
         {
+            logger.LogWarning("Initiate document upload failed for session {SessionId}: user is not authenticated.", sessionId);
             return ApiResponse<DocumentUploadResponse>.Failure(
                 CommonErrors.Unauthorized("User is not authenticated."));
         }
@@ -31,6 +39,10 @@ public sealed class InitiateDocumentUploadUseCase(
         var session = await reviewSessionRepository.GetActiveByIdAsync(sessionId, userId, cancellationToken);
         if (session is null)
         {
+            logger.LogWarning(
+                "Initiate document upload failed for session {SessionId} and user {UserId}: session not found.",
+                sessionId,
+                userId);
             return ApiResponse<DocumentUploadResponse>.Failure(
                 CommonErrors.NotFound("Session not found."));
         }
@@ -38,18 +50,27 @@ public sealed class InitiateDocumentUploadUseCase(
         var fileName = NormalizeFileName(request.FileName);
         if (string.IsNullOrWhiteSpace(fileName))
         {
+            logger.LogWarning("Initiate document upload failed for session {SessionId}: file name is required.", sessionId);
             return ApiResponse<DocumentUploadResponse>.Failure(
                 CommonErrors.FieldRequired(nameof(request.FileName)));
         }
 
         if (!string.Equals(request.ContentType, PdfContentType, StringComparison.OrdinalIgnoreCase))
         {
+            logger.LogWarning(
+                "Initiate document upload failed for session {SessionId}: unsupported content type {ContentType}.",
+                sessionId,
+                request.ContentType ?? string.Empty);
             return ApiResponse<DocumentUploadResponse>.Failure(
                 CommonErrors.BadRequest("Only PDF files are supported."));
         }
 
         if (request.FileSize <= 0)
         {
+            logger.LogWarning(
+                "Initiate document upload failed for session {SessionId}: invalid file size {FileSize}.",
+                sessionId,
+                request.FileSize);
             return ApiResponse<DocumentUploadResponse>.Failure(
                 CommonErrors.BadRequest("File size must be greater than zero."));
         }
@@ -64,6 +85,10 @@ public sealed class InitiateDocumentUploadUseCase(
                 objectKey,
                 request.ContentType,
                 cancellationToken);
+
+            logger.LogInformation(
+                "Initiate document upload succeeded for document {DocumentId} in single upload mode.",
+                documentId);
 
             return ApiResponse<DocumentUploadResponse>.Success(new DocumentUploadResponse(
                 DocumentId: documentId,
@@ -80,6 +105,10 @@ public sealed class InitiateDocumentUploadUseCase(
         var partCount = (int)Math.Ceiling((double)request.FileSize / cloudStorage.MultipartPartSizeBytes);
         if (partCount > MaxMultipartParts)
         {
+            logger.LogWarning(
+                "Initiate document upload failed for session {SessionId}: multipart part count {PartCount} exceeded limit.",
+                sessionId,
+                partCount);
             return ApiResponse<DocumentUploadResponse>.Failure(
                 CommonErrors.BadRequest("File is too large for multipart upload."));
         }
@@ -94,6 +123,11 @@ public sealed class InitiateDocumentUploadUseCase(
             multipartUpload.UploadId,
             partCount,
             cancellationToken);
+
+        logger.LogInformation(
+            "Initiate document upload succeeded for document {DocumentId} in multipart mode with {PartCount} parts.",
+            documentId,
+            partCount);
 
         return ApiResponse<DocumentUploadResponse>.Success(new DocumentUploadResponse(
             DocumentId: documentId,
