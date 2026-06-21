@@ -9,12 +9,21 @@ services:
         condition: service_healthy
       risktrace.redis:
         condition: service_started
+      risktrace.rabbitmq:
+        condition: service_healthy
+      risktrace.ai:
+        condition: service_started
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080
       Database__Provider: PostgreSQL
       ConnectionStrings__DefaultConnection: Host=risktrace.db;Port=5432;Database=risktrace_db;Username=postgres;Password=1234
       ConnectionStrings__Redis: risktrace.redis:6379
+      RabbitMq__Host: risktrace.rabbitmq
+      RabbitMq__Port: 5672
+      RabbitMq__VirtualHost: /
+      RabbitMq__Username: guest
+      RabbitMq__Password: guest
       Storage__R2__AccountId: ${R2_ACCOUNT_ID}
       Storage__R2__AccessKeyId: ${R2_ACCESS_KEY_ID}
       Storage__R2__SecretAccessKey: ${R2_SECRET_ACCESS_KEY}
@@ -50,6 +59,39 @@ services:
     restart: unless-stopped
     ports:
       - "6379:6379"
+
+  risktrace.rabbitmq:
+    container_name: risktrace.rabbitmq
+    image: rabbitmq:3-management
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_VHOST: /
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  risktrace.ai:
+    container_name: risktrace.ai
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    depends_on:
+      risktrace.rabbitmq:
+        condition: service_healthy
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@risktrace.rabbitmq:5672/
+      # ANALYSIS_EXCHANGE: risktrace.analysis
+      # ANALYSIS_REQUEST_QUEUE: risktrace.analysis.requested
+      # ANALYSIS_RESULT_ROUTING_KEY: analysis.completed
+    ports:
+      - "8001:8000"
 
 volumes:
   risktrace-postgres:
