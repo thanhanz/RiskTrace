@@ -13,6 +13,8 @@ ANALYSIS_REQUEST_QUEUE=risktrace.analysis.requested
 ANALYSIS_RESULT_ROUTING_KEY=analysis.completed
 ```
 
+These names are also defined in `app/common/messaging_constants.py` so the service has a single internal source of truth for exchange, queue, and routing keys.
+
 Publish an event:
 
 ```python

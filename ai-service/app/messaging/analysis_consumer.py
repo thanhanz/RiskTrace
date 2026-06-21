@@ -6,6 +6,7 @@ from typing import Any
 from aio_pika import IncomingMessage
 
 from app.common.logger import get_logger
+from app.common.messaging_constants import AnalysisMessagingConstants
 from app.common.settings import settings
 from app.messaging.rabbitmq_connection import declare_analysis_exchange, rabbitmq_channel
 
@@ -16,7 +17,7 @@ EventHandler = Callable[[dict[str, Any]], Awaitable[None]]
 async def consume_events(
     handler: EventHandler,
     queue_name: str | None = None,
-    routing_key: str = "analysis.requested",
+    routing_key: str = AnalysisMessagingConstants.REQUEST_ROUTING_KEY,
 ) -> None:
     async with rabbitmq_channel() as channel:
         exchange = await declare_analysis_exchange(channel)
