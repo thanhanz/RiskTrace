@@ -130,7 +130,7 @@ public sealed class CompleteDocumentUploadUseCase(
         Guid userId,
         CancellationToken cancellationToken)
     {
-        var event = new DocumentUploadedEvent
+        var evnt = new DocumentUploadedEvent
         {
             DocumentId = document.Id,
             SessionId = document.SessionId,
@@ -143,7 +143,7 @@ public sealed class CompleteDocumentUploadUseCase(
         {
             await messageQueueService.PublishAsync(
                 MessagingConstants.RoutingKeys.DocumentUploadedRequest,
-                event,
+                evnt,
                 cancellationToken);
 
             logger.LogInformation(
