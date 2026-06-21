@@ -27,4 +27,9 @@ public class LoggerConstants
     public static readonly string WindowsDirectory = Path.Combine(
         CommonConstants.WindowsWorkingDirectory,
         "logs");
+
+    /// <summary>
+    ///     The directory path for macOS.
+    /// </summary>
+    public static readonly string MacDirectory = CommonConstants.MacWorkingDirectory;
 }

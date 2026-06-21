@@ -1,7 +1,9 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using RiskTrace.Core.Interfaces.Logger;
 using RiskTrace.Infrastructure.Auth;
 using RiskTrace.Infrastructure.Caching;
+using RiskTrace.Infrastructure.Logger;
 using RiskTrace.Infrastructure.Messaging.Extensions;
 using RiskTrace.Infrastructure.Persistence;
 
@@ -22,6 +24,7 @@ public static class DependencyInjection
         services.AddAuthServices();
         services.AddExternalServices(configuration);
         services.AddHttpContextAccessor();
+        services.AddSingleton(typeof(ILogger<>), typeof(NLogger<>));
 
         return services;
     }
