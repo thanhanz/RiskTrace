@@ -3,7 +3,7 @@ namespace RiskTrace.Core.Constants;
 /// <summary>
 ///     Constants related to the logger.
 /// </summary>
-public class LoggerConstants
+public static class LoggerConstants
 {
     /// <summary>
     ///     The maximum file size limit in bytes.
@@ -25,7 +25,15 @@ public class LoggerConstants
     ///     The directory path for Windows.
     /// </summary>
     public static readonly string WindowsDirectory = Path.Combine(
-        CommonConstants.WindowsWorkingDirectory,
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+        "RiskTrace",
+        "logs");
+
+    /// <summary>
+    ///     The directory path for Linux containers.
+    /// </summary>
+    public static readonly string LinuxDirectory = Path.Combine(
+        CommonConstants.LinuxWorkingDirectory,
         "logs");
 
     /// <summary>

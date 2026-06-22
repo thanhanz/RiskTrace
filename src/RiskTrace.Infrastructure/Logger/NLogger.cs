@@ -12,7 +12,11 @@ public sealed class NLogger<TCategoryName> : ILogger<TCategoryName>
 
     public NLogger()
     {
-        var filePath = CommonConstants.IsWindows ? LoggerConstants.WindowsDirectory : LoggerConstants.MacDirectory;
+        var filePath = CommonConstants.IsWindows
+            ? LoggerConstants.WindowsDirectory
+            : OperatingSystem.IsLinux()
+                ? LoggerConstants.LinuxDirectory
+                : LoggerConstants.MacDirectory;
 
         if (!Directory.Exists(filePath))
         {
