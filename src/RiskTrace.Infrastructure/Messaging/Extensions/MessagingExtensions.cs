@@ -16,7 +16,7 @@ public static class MessagingExtensions
             configuration.GetSection(RabbitMqOptions.SectionName));
 
         services.AddSingleton<RabbitMqConnectionFactory>();
-        services.AddScoped<IMessageQueueService, RabbitMqPublisher>();
+        services.AddScoped<IMessageQueuePublisher, RabbitMqPublisher>();
 
         return services;
     }

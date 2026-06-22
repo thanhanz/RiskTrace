@@ -21,7 +21,7 @@ public sealed class CompleteDocumentUploadUseCase(
     IDocumentRepository documentRepository,
     ICloudStorage cloudStorage,
     IUnitOfWork unitOfWork,
-    IMessageQueueService messageQueueService,
+    IMessageQueuePublisher messageQueuePublisher,
     ILogger<CompleteDocumentUploadUseCase> logger) : ICompleteDocumentUploadUseCase
 {
     private const string PdfContentType = "application/pdf";
@@ -141,7 +141,7 @@ public sealed class CompleteDocumentUploadUseCase(
 
         try
         {
-            await messageQueueService.PublishAsync(
+            await messageQueuePublisher.ExecuteAsync(
                 MessagingConstants.RoutingKeys.DocumentUploadedRequest,
                 evnt,
                 cancellationToken);

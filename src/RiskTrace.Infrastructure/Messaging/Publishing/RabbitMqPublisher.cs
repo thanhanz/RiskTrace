@@ -13,14 +13,14 @@ namespace RiskTrace.Infrastructure.Messaging.Publishing;
 public sealed class RabbitMqPublisher(
     RabbitMqConnectionFactory connectionFactory,
     IOptions<RabbitMqOptions> options,
-    ILogger<RabbitMqPublisher> logger) : IMessageQueueService, IAsyncDisposable
+    ILogger<RabbitMqPublisher> logger) : IMessageQueuePublisher, IAsyncDisposable
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     private readonly SemaphoreSlim _channelLock = new(1, 1);
     private IChannel? _channel;
 
-    public async Task PublishAsync<T>(
+    public async Task ExecuteAsync<T>(
         string routingKey,
         T message,
         CancellationToken cancellationToken = default)
