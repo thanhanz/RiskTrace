@@ -18,6 +18,10 @@ RUN dotnet publish "src/RiskTrace.Api/RiskTrace.Api.csproj" -c Release -o /app/p
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 
+RUN apt-get update \ #Remove recommendations libkrb5-3 to avoid installing unnecessary packages and reduce image size
+    && apt-get install -y --no-install-recommends libkrb5-3 \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY --from=build /app/publish .
 
 ENV ASPNETCORE_URLS=http://+:8080
