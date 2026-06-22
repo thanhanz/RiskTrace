@@ -1,7 +1,7 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from aio_pika import Channel, ExchangeType, RobustConnection, connect_robust
+from aio_pika import Channel, ExchangeType, Queue, RobustConnection, connect_robust
 
 from app.common.settings import settings
 
@@ -21,3 +21,14 @@ async def declare_analysis_exchange(channel: Channel):
         ExchangeType.TOPIC,
         durable=True,
     )
+
+
+async def declare_bound_queue(
+    channel: Channel,
+    queue_name: str,
+    routing_key: str,
+) -> Queue:
+    exchange = await declare_analysis_exchange(channel)
+    queue = await channel.declare_queue(queue_name, durable=True)
+    await queue.bind(exchange, routing_key=routing_key)
+    return queue
