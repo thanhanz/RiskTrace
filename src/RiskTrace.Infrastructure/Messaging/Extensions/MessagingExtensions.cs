@@ -22,6 +22,7 @@ public static class MessagingExtensions
 
         // Singleton - continue background consuming in the whole app lifecycle
         services.AddSingleton<IMessageQueueConsumer, RabbitMqConsumer>();
+        services.AddHostedService<AiResponseConsumerHostedService>();
 
         return services;
     }
