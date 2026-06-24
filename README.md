@@ -1,242 +1,206 @@
 # RiskTrace
 
-RiskTrace is an in-progress backend for a legal-tech style document review workflow. The project is being built as an ASP.NET Core Web API with Clean Architecture, PostgreSQL persistence, JWT-based authentication, cloud-backed document upload, RabbitMQ messaging, NLog-based application tracing, and an integration boundary for an external AI service that will analyze uploaded legal documents and support session-based conversations.
+RiskTrace is a backend-first legal-tech project focused on reviewing real estate legal documents under Vietnamese law. The target users are people who need an early risk screening workflow for contracts and documents related to property transactions in Vietnam, such as sale and purchase agreements, deposit agreements, lease contracts, and supporting legal paperwork.
 
-The current codebase is stronger in architecture and backend foundations than in end-user feature completeness. Authentication, persistence, database migrations, dependency wiring, cloud storage upload preparation, RabbitMQ publish infrastructure, and use case trace logging are implemented. Review-result work is still incomplete, and a few document-related use case files remain placeholders.
+The system is designed to let users create review sessions, upload documents, receive AI-assisted review results, and continue the review through session-based chat. The long-term goal is not to replace a lawyer, but to help surface legal risks, missing information, suspicious clauses, and points that should be checked against Vietnamese real estate law before a user moves forward.
 
-## What Exists Today
+## Project Focus
 
-### Implemented
+RiskTrace is built around a narrow legal domain:
 
-- Layered solution split into `Api`, `UseCases`, `Domain`, `Infrastructure`, and `Core`
-- ASP.NET Core API entry point with Swagger enabled in development
-- PostgreSQL integration with Entity Framework Core and automatic migration on startup
-- Database schema for users, review sessions, documents, messages, review results, and refresh tokens
-- Authentication use cases for register, login, refresh token rotation, logout, and authenticated profile lookup
-- JWT access token generation and hashed refresh token storage
-- Password hashing with `BCrypt.Net`
-- Redis-backed token blacklist wiring
-- Review session use cases for create, list, detail, rename, and soft-delete
-- R2/S3-compatible document upload initiation and upload completion metadata persistence
-- Session message use cases for send and paginated retrieval
-- RabbitMQ publish flow for document-upload events after database commit
-- Custom `ILogger<T>` abstraction in `RiskTrace.Core` with an NLog-backed adapter in `RiskTrace.Infrastructure`
-- Structured trace logging across implemented auth, session, document, and message use cases
-- Docker Compose setup for the API, PostgreSQL database, and Redis
+- Real estate laws and legal practice in Vietnam
+- Contract review and risk identification
+- Document-based legal analysis
+- Traceable review sessions for uploaded documents
+- AI-assisted explanations with future support for legal citations
 
-### Partially Implemented / Scaffolded
+The current repository is mainly a backend and AI-service foundation. It demonstrates the architecture, data model, authentication flow, document workflow, messaging boundary, and the planned integration point for legal AI review.
 
-- Domain entities and enums for review sessions, documents, messages, and review results
-- Repository abstractions and EF Core repository implementations
-- API controller files and use case files for sessions, documents, messages, and review results
-- Messaging contracts and RabbitMQ publisher infrastructure
-- AI client boundary for future document analysis and chat integration
+## Main Workflow
 
-### Not Yet Implemented
+The intended user flow is:
 
-- RabbitMQ consumer flow for AI review completion messages
-- External AI document ingestion subscriber
-- Review result generation flow
-- Real HTTP integration with the AI service
+1. A user registers or signs in.
+2. The user creates a review session for a real estate legal matter.
+3. The user uploads one or more legal documents.
+4. The backend stores document metadata and publishes an analysis request.
+5. The AI service reviews the document content against the Vietnam real estate legal scope.
+6. The user receives review results and can continue asking questions inside the session.
+
+Some parts of this workflow are still in progress, especially the final AI-backed review result flow.
 
 ## Architecture
 
-The solution follows a clean, dependency-conscious structure:
-
 ```text
-src/
-|-- RiskTrace.Api
-|-- RiskTrace.Core
-|-- RiskTrace.Domain
-|-- RiskTrace.UseCases
-`-- RiskTrace.Infrastructure
+RiskTrace
+|-- src/
+|   |-- RiskTrace.Api
+|   |-- RiskTrace.Core
+|   |-- RiskTrace.Domain
+|   |-- RiskTrace.UseCases
+|   `-- RiskTrace.Infrastructure
+|-- ai-service/
+|-- docs/
+|-- docker-compose.yaml
+`-- RiskTrace.sln
 ```
 
-### Layer Responsibilities
+Layer responsibilities:
 
-- `RiskTrace.Api`: HTTP entry point, controllers, composition root
-- `RiskTrace.UseCases`: application orchestration and use case contracts
-- `RiskTrace.Domain`: domain entities, enums, request/response models, event contracts, messaging constants
-- `RiskTrace.Infrastructure`: EF Core, repositories, auth services, storage, RabbitMQ publisher, NLog logger adapter, AI integration adapters
-- `RiskTrace.Core`: shared abstractions, logger contracts, and common result/pagination primitives
+- `RiskTrace.Api`: ASP.NET Core Web API, controllers, authentication endpoints, and application startup.
+- `RiskTrace.UseCases`: application workflows and ports for repositories, storage, messaging, and AI integration.
+- `RiskTrace.Domain`: entities, enums, request/response models, and domain contracts.
+- `RiskTrace.Infrastructure`: EF Core persistence, PostgreSQL repositories, JWT services, Redis integration, RabbitMQ integration, logging, and external adapters.
+- `RiskTrace.Core`: shared primitives such as `Result<T>`, pagination, and cross-cutting abstractions.
+- `ai-service`: separate AI service folder. Its own README will describe this part later.
 
-### Dependency Direction
+Dependency direction:
 
 ```text
-Api -> UseCases, Core
-Infrastructure -> UseCases, Domain, Core
+Api -> UseCases
+Infrastructure -> UseCases
 UseCases -> Domain, Core
+Infrastructure -> Domain, Core
 Domain -> Core
 ```
 
-This keeps business-facing code separated from infrastructure concerns and makes it easier to evolve adapters such as storage, database access, or AI integration later.
+The backend follows a clean architecture style so business workflows do not depend directly on infrastructure concerns such as EF Core, RabbitMQ, object storage, or HTTP clients.
 
-## Current Domain Model
+## Current Capabilities
 
-The backend is organized around a review session owned by a user:
+Implemented or mostly implemented:
 
-```text
-User
-`-- ReviewSession
-    |-- Document
-    |-- Message
-    `-- ReviewResult
-```
+- User registration, login, refresh token rotation, logout, and current-user lookup
+- JWT authentication with refresh tokens
+- PostgreSQL persistence through Entity Framework Core
+- Redis-backed token blacklist support
+- Review session create, list, detail, rename, and delete workflows
+- Document upload initiation and completion workflow
+- Session message send and list workflow
+- RabbitMQ messaging boundary for document analysis events
+- Hosted consumer structure for AI response messages
+- NLog-backed application tracing through a project-level logger abstraction
+- Docker Compose services for API, PostgreSQL, Redis, RabbitMQ, and AI service
 
-Current entities in the model:
+Still in progress:
 
-- `User`
-- `RefreshToken`
-- `ReviewSession`
-- `Document`
-- `Message`
-- `ReviewResult`
-
-This model sets up the intended workflow: a user creates a review session, uploads one or more documents, receives generated review output, and continues the review through session messages.
-
-## Authentication Design
-
-Authentication is the most complete vertical slice in the project right now, and it now includes trace logging at the use case layer.
-
-Implemented auth flow:
-
-- `POST /api/v1/register`
-- `POST /api/v1/login`
-- `POST /api/v1/refresh`
-- `POST /api/v1/logout`
-
-Technical details:
-
-- Access tokens are generated as JWTs
-- Refresh tokens are generated separately, hashed with SHA-256 before persistence, and rotated on refresh
-- Passwords are hashed with BCrypt
-- Access tokens are also written to an HTTP-only cookie
-
-## Persistence and Database
-
-The project uses Entity Framework Core with PostgreSQL.
-
-Current persistence work includes:
-
-- `AppDbContext` with entity sets for all core tables
-- Fluent configuration classes under `Infrastructure/Persistence/Configurations`
-- Initial schema migration
-- Additional migration for refresh tokens
-- Generic read/write repository abstractions plus specific repositories for domain aggregates
-
-The database is started through `docker-compose.yaml`, and the API applies migrations on startup.
-
-## Document Upload and Messaging
-
-The document upload flow is currently split into two backend steps:
-
-- `InitiateDocumentUploadUseCase` creates a document id and returns a presigned upload target for R2/S3-compatible storage
-- `CompleteDocumentUploadUseCase` validates the uploaded object, saves document metadata, commits the database transaction, then publishes a RabbitMQ event
-
-RabbitMQ is exposed to use cases through the `IMessageQueueService` port in `RiskTrace.UseCases`. The concrete publisher lives in `RiskTrace.Infrastructure/Messaging`, so application logic does not depend on RabbitMQ client types.
-
-Current messaging contract:
-
-- Exchange: `risktrace.events`
-- Document indexing queue: `risktrace.documents.index`
-- Document upload routing key: `document.indexing_requested`
-- Published event: `DocumentUploadedEvent`
-
-The publish operation happens after `SaveChangesAsync` succeeds. If RabbitMQ publishing fails, the error is logged and the HTTP upload-completion response still succeeds. This is intentional for now; a transactional outbox or dead-letter/retry strategy can be added later when stronger delivery guarantees are needed.
-
-## Logging and Trace Flow
-
-Application tracing is wired through a custom `RiskTrace.Core.Interfaces.Logger.ILogger<T>` abstraction so use case code does not depend directly on `NLog` or `Microsoft.Extensions.Logging`.
-
-Current logging design:
-
-- `RiskTrace.Infrastructure` provides `NLogger<T>` as the concrete adapter
-- NLog writes rolling log files using `LoggerConstants`
-- The logger is registered in infrastructure dependency injection as an open generic singleton
-- Authentication, session, document, and message use cases log request entry, expected failure branches, and successful completion
-
-RabbitMQ settings are configured under the `RabbitMq` section:
-
-```json
-{
-  "RabbitMq": {
-    "Host": "localhost",
-    "Port": 5672,
-    "VirtualHost": "/",
-    "Username": "guest",
-    "Password": "guest"
-  }
-}
-```
+- Complete AI review pipeline for Vietnamese real estate legal analysis
+- Review result generation and retrieval APIs
+- Production-ready legal knowledge base and RAG pipeline
+- Legal citation support in AI review results
+- OCR support for scanned documents
+- Stronger operational hardening around message retries and delivery guarantees
 
 ## Tech Stack
 
-- `.NET 10`
-- `ASP.NET Core Web API`
-- `Entity Framework Core`
-- `PostgreSQL`
-- `Redis`
-- `RabbitMQ`
-- `NLog`
-- `BCrypt.Net`
-- `JWT`
-- `R2 / S3-compatible object storage`
-- `Swagger / Swashbuckle`
-- `Docker Compose`
+- .NET 10
+- ASP.NET Core Web API
+- Entity Framework Core
+- PostgreSQL
+- Redis
+- RabbitMQ
+- JWT authentication
+- NLog
+- Docker Compose
+- Python AI service scaffold
+- Cloudflare R2 / S3-compatible object storage boundary
 
-## Project Status
+## Setup
 
-This project is currently in the `foundation + vertical slice` stage.
+### 1. Fork the repository
 
-What that means in practice:
+Fork this repository to your own GitHub account, then clone your fork:
 
-- The backend structure and boundaries are already established
-- Authentication is implemented end-to-end
-- The main business workflow is already modeled in the solution and database
-- Session management and message workflow are implemented
-- Document upload has a working backend path through cloud storage metadata completion and RabbitMQ event publishing
-- Implemented use cases emit structured trace logs for application flow tracking
-- The remaining work is primarily filling in the AI consuming/processing and review-result flows
+```bash
+git clone https://github.com/thanhanz/RiskTrace.git
+cd RiskTrace
+```
 
-For a technical reviewer, the current repository demonstrates backend architecture decisions, authentication design, persistence setup, and early system decomposition more than complete product delivery.
+Add the original repository as `upstream` if you want to keep your fork synchronized:
 
-## Planned / Next
+```bash
+git remote add upstream https://github.com/thanhanz/RiskTrace.git
+git fetch upstream
+```
 
-Short-term next steps:
+### 2. Install prerequisites
 
-- Add RabbitMQ consuming for AI review completion events
-- Add a transactional outbox if RabbitMQ publishing needs guaranteed delivery
-- Connect `LegalAiHttpClient` to the AI service endpoints
-- Implement review-result generation and retrieval
-- Extend logging beyond file-based tracing if centralized observability is needed
+Required tools:
 
-Possible later improvements already noted in the architecture document:
+- .NET SDK 10
+- Docker Desktop or a compatible Docker runtime
+- Git
 
-- Vector database support
-- Citation support in AI responses
-- OCR for document ingestion
-- Audit logging
-- Multi-document comparison
+Optional tools:
 
-## Why This Project Matters
+- PostgreSQL client
+- RabbitMQ management UI through Docker
+- An API client such as Postman, Insomnia, or Swagger UI
 
-Even in its current state, this project shows several backend engineering concerns that are relevant for junior `.NET` roles:
+### 3. Configure secrets locally
 
-- Structuring a multi-project solution with clear layer boundaries
-- Designing a relational data model for a non-trivial workflow
-- Implementing JWT and refresh-token based authentication
-- Using EF Core migrations and repository abstractions with PostgreSQL
-- Publishing domain events through a RabbitMQ port/adapter boundary
-- Keeping application trace logging behind a Core abstraction with an Infrastructure adapter
-- Preparing external service integration through ports/adapters instead of hard-coupling business logic to HTTP details
+Do not commit API keys, secret keys, access keys, JWT signing keys, or production passwords.
+
+Use local environment variables, user secrets, or a private `.env` file that is not committed. The project expects configuration values such as:
+
+```text
+ConnectionStrings__DefaultConnection=<your-postgres-connection-string>
+ConnectionStrings__Redis=<your-redis-connection-string>
+Jwt__SigningKey=<your-local-jwt-signing-key>
+Storage__R2__AccountId=<your-r2-account-id>
+Storage__R2__AccessKeyId=<your-r2-access-key-id>
+Storage__R2__SecretAccessKey=<your-r2-secret-access-key>
+Storage__R2__BucketName=<your-r2-bucket-name>
+Storage__R2__PublicBaseUrl=<your-r2-public-base-url>
+RabbitMq__Host=<your-rabbitmq-host>
+RabbitMq__Username=<your-rabbitmq-username>
+RabbitMq__Password=<your-rabbitmq-password>
+```
+
+Use development-only values on your machine. Never publish real service credentials in documentation, commits, screenshots, issues, or pull requests.
+
+### 4. Start local services
+
+The repository includes Docker Compose configuration for the API, PostgreSQL, Redis, RabbitMQ, and the AI service scaffold:
+
+```bash
+docker compose up -d
+```
+
+When running locally, the API (Swagger) is expected to be available on:
+
+```text
+http://localhost:8080
+```
+
+RabbitMQ management UI is expected to be available on:
+
+```text
+http://localhost:15672
+```
+
+### 5. Open the API
+
+In development mode, use Swagger UI or your preferred API client to explore the available endpoints.
+
+Common API areas:
+
+- Authentication
+- User profile
+- Review sessions
+- Documents
+- Messages
+- Review results
+
+## Legal Scope Notice
+
+RiskTrace is a software project for AI-assisted legal document review. It should be treated as a support tool for identifying possible risks in Vietnam real estate documents, not as formal legal advice.
+
+Real estate law is sensitive and changes over time. Any output from the system should be reviewed by a qualified legal professional before being used for an actual transaction or dispute.
 
 ## Repository Notes
 
-Two details are worth calling out honestly:
-
-- `RiskTrace.Api` currently references `RiskTrace.Infrastructure` directly in the composition root, and there is already a comment in `Program.cs` noting this should be cleaned up later
-- Several controller and use case files exist as placeholders, so the repository should be read as an actively developing backend rather than a finished product
-- RabbitMQ consuming and AI-side document processing are not complete yet; the current backend work only publishes document-upload events
-- Review result workflow is still not implemented, even though auth, sessions, documents, and messages now have concrete use case coverage and trace logging
-
-That is still acceptable for a portfolio project, as long as the README is explicit about what is complete and what is not.
+- The backend is the most developed part of the repository.
+- The AI service folder is present and will be documented separately in `ai-service/README.md`.
+- The project is still under active development, so some endpoints and workflows are scaffolded or incomplete.
+- Secret values must stay local. Replace any local sample values with your own private development configuration before running the project.
