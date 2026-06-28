@@ -7,6 +7,13 @@ from app.core.constants import AnalysisMessagingConstants
 
 class Settings(BaseSettings):
     service_name: str = "RiskTrace AI Service"
+    ingest_knowledge_base_on_startup: bool = True
+    knowledge_base_dir: str | None = None
+    
+    ocr_enabled: bool = True
+    ocr_language: str = "vie+eng"
+    ocr_dpi: int = 300
+    ocr_min_text_chars_per_page: int = 20
     rabbitmq_url: str = "amqp://guest:guest@localhost:5672/"
     analysis_exchange: str = AnalysisMessagingConstants.EXCHANGE
     analysis_request_queue: str = AnalysisMessagingConstants.DOCUMENT_UPLOADED_QUEUE
