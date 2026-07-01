@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     knowledge_base_dir: str | None = None
     
     ocr_enabled: bool = True
-    ocr_language: str = "vie+eng"
+    ocr_language: str = "vie"
     ocr_dpi: int = 300
     ocr_min_text_chars_per_page: int = 20
     rabbitmq_url: str = "amqp://guest:guest@localhost:5672/"
