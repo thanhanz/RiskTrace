@@ -10,6 +10,7 @@ from app.services.document.chunker import (
     SourceMetadata,
     LegalKnowledgeBaseChunker,
 )
+from app.services.document.chunk_validator import LegalChunkValidator
 from app.services.document.extractor import DocumentExtractor
 from app.services.document.ocr import OcrPdfExtractor
 
@@ -30,7 +31,9 @@ class IngestedSourceSummary:
     source_id: str
     pdf_path: str
     chunks_path: str
+    quarantine_path: str
     chunk_count: int
+    quarantined_chunk_count: int
     warnings: list[dict[str, Any]]
 
 
@@ -53,9 +56,11 @@ class IngestKnowledgeBaseUseCase:
         self,
         extractor: DocumentExtractor | None = None,
         chunker: LegalKnowledgeBaseChunker | None = None,
+        validator: LegalChunkValidator | None = None,
     ) -> None:
         self.extractor = extractor or OcrPdfExtractor()
         self.chunker = chunker or LegalKnowledgeBaseChunker()
+        self.validator = validator or LegalChunkValidator()
 
     def execute(
         self,
@@ -82,9 +87,10 @@ class IngestKnowledgeBaseUseCase:
             summaries.append(source_summary)
             total_chunks += source_summary.chunk_count
             logger.info(
-                "Finished PDF '%s': %s chunk(s), %s warning(s).",
+                "Finished PDF '%s': %s chunk(s), %s quarantined chunk(s), %s warning(s).",
                 pdf_path.name,
                 source_summary.chunk_count,
+                source_summary.quarantined_chunk_count,
                 len(source_summary.warnings),
             )
 
@@ -127,21 +133,47 @@ class IngestKnowledgeBaseUseCase:
             source.source_id,
         )
         chunks = self.chunker.chunk(extracted_document, source, effect)
+        validation_results = self.validator.validate_many(chunks)
+        valid_chunks = [result.chunk for result in validation_results if result.is_valid]
+        quarantined_chunks = [
+            result for result in validation_results if not result.is_valid
+        ]
 
         chunks_path = processed_dir / f"{source.source_id}.chunks.jsonl"
         with chunks_path.open("w", encoding="utf-8") as chunks_file:
-            for chunk in chunks:
+            for chunk in valid_chunks:
                 chunks_file.write(
                     json.dumps(chunk.to_dict(), ensure_ascii=False, sort_keys=True)
                 )
                 chunks_file.write("\n")
+
+        quarantine_path = processed_dir / f"{source.source_id}.quarantine.jsonl"
+        with quarantine_path.open("w", encoding="utf-8") as quarantine_file:
+            for result in quarantined_chunks:
+                quarantine_file.write(
+                    json.dumps(
+                        result.to_quarantine_record(),
+                        ensure_ascii=False,
+                        sort_keys=True,
+                    )
+                )
+                quarantine_file.write("\n")
+
+        if quarantined_chunks:
+            logger.warning(
+                "Quarantined %s chunk(s) for source '%s' due to validation issues.",
+                len(quarantined_chunks),
+                source.source_id,
+            )
 
         warnings = [asdict(warning) for warning in extracted_document.warnings]
         return IngestedSourceSummary(
             source_id=source.source_id,
             pdf_path=str(pdf_path),
             chunks_path=str(chunks_path),
-            chunk_count=len(chunks),
+            quarantine_path=str(quarantine_path),
+            chunk_count=len(valid_chunks),
+            quarantined_chunk_count=len(quarantined_chunks),
             warnings=warnings,
         )
 

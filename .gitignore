@@ -10,3 +10,5 @@ obj/
 AGENTS.md
 **/appsettings.Development.json
 **/appsettings.json
+
+/ai-service/knowledge_base/
