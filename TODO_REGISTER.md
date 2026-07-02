@@ -5,7 +5,8 @@ This file records TODO markers found in the codebase and explains why each task 
 ## AI Service Knowledge Base Ingestion Trigger
 
 - **Source:** `ai-service/app/application/use_cases/ingest_knowledge_base.py`
-- **TODO:** This use case should only be called after an admin uploads knowledge-base PDFs and metadata to `knowledge_base/sources/`. A RabbitMQ consumer may trigger ingestion when a new PDF is uploaded through a future .NET endpoint such as `admin/upload-knowledge-base`.
+- **TODO:** This use case should only be called after an admin uploads knowledge-base PDFs and METADATA (this event will stored metadata + "PATH" - position of raw file in R2 cloudflare) to `knowledge_base/sources/`. 
+            A RabbitMQ consumer may trigger ingestion when a new PDF is uploaded through a FUTURE .NET endpoint such as `admin/upload-knowledge-base`.
 - **Reason:** Startup ingestion is useful for the current proof of concept, but production ingestion should be an explicit admin workflow. Legal knowledge-base updates are controlled data operations: they need ownership, validation, failure reporting, and should not run unexpectedly every time the AI service starts.
 
 ## Knowledge Base Ingestion Command Surface
