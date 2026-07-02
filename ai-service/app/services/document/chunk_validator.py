@@ -46,31 +46,87 @@ class ChunkValidationResult:
 class LegalChunkValidator:
     """Validate OCR-derived legal chunks before they become retrieval data."""
 
+    """_summary_
+
+    Returns:
+        "Điều" + số (có thể kèm chữ cái, vd "12a") + dấu chấm. Ví dụ: "Điều 5.", "Điều 12a."
+    """
     ARTICLE_HEADER_RE = re.compile(
         "^\\s*\u0110i\u1ec1u\\s+(?P<number>\\d+[a-zA-Z]?)\\.",
         re.IGNORECASE,
     )
+    
+    """_summary_
+
+    Returns:
+        Kiểm tra số điều hợp lệ: chuỗi chỉ gồm số, có thể kèm 1 chữ cái ở cuối (vd "5", "12a"), không có gì khác.
+    """
     ARTICLE_NUMBER_RE = re.compile("^\\d+[a-zA-Z]?$")
+    
+    """_summary_
+
+    Returns:
+         YYYY-MM-DD, ví dụ "2024-01-15".
+    """
     ISO_DATE_RE = re.compile("^\\d{4}-\\d{2}-\\d{2}$")
+    
+    """_summary_
+
+    Returns:
+        Bắt ngày dạng dd/mm/yyyy (có thể 1 hoặc 2 chữ số cho ngày/tháng): ví dụ "5/3/2023", "15/12/2023".
+    """
     DATE_SLASH_RE = re.compile("\\b(?P<day>\\d{1,2})/(?P<month>\\d{1,2})/(?P<year>\\d{4})\\b")
+    
+    """_summary_
+
+    Returns:
+        Bắt ngày viết theo kiểu văn bản pháp luật Việt Nam: dạng "ngày X tháng Y năm ZZZZ", ví dụ "ngày 5 tháng 3 năm 2023".
+    """
     VIETNAMESE_DATE_RE = re.compile(
         "\\bng\u00e0y\\s+(?P<day>\\d{1,2})\\s+th\u00e1ng\\s+"
         "(?P<month>\\d{1,2})\\s+n\u0103m\\s+(?P<year>\\d{4})\\b",
         re.IGNORECASE,
     )
+    
+    """_summary_
+
+    Returns:
+        Phát hiện số "ngày" bất thường: bắt trường hợp sau chữ "ngày" là số có từ 3 chữ số trở lên (không hợp lý vì ngày chỉ có 1-2 chữ số) — dùng để cảnh báo lỗi dữ liệu, ví dụ "ngày 123".
+    """
     SUSPICIOUS_DAY_RE = re.compile("\\bng\u00e0y\\s+(?P<value>\\d{3,})\\b", re.IGNORECASE)
+    
+    """_summary_
+
+    Returns:
+        Bắt trích dẫn đầy đủ của Nghị định: dạng "Nghị định số XX/YYYY/NĐ-CP", ví dụ "Nghị định số 15/2023/NĐ-CP".
+    """
     DECREE_FULL_RE = re.compile(
         "\\bNgh\u1ecb\\s+\u0111\u1ecbnh\\s+s\u1ed1\\s+"
         "\\d+/\\d{4}/N\u0110-CP\\b",
         re.IGNORECASE,
     )
+    
+    """_summary_
+
+    Returns:
+        - Bắt phần đầu của trích dẫn Nghị định (không yêu cầu đủ định dạng): khớp "Nghị định số" + bất kỳ chuỗi ký tự nào không phải khoảng trắng/dấu câu (, . ; : )) theo sau 
+        — Dùng để bắt cả trường hợp trích dẫn thiếu hoặc sai định dạng, nhằm phát hiện lỗi.
+    """
     DECREE_PREFIX_RE = re.compile(
         "\\bNgh\u1ecb\\s+\u0111\u1ecbnh\\s+s\u1ed1\\s+[^\\s,.;:)]*",
         re.IGNORECASE,
     )
 
     def validate_many(self, chunks: list[LegalChunk]) -> list[ChunkValidationResult]:
-        return [self.validate(chunk) for chunk in chunks]
+        issue_lists = [list(self.validate(chunk).issues) for chunk in chunks]
+
+        for chunk_index, issue in self._validate_article_sequence(chunks):
+            issue_lists[chunk_index].append(issue)
+
+        return [
+            ChunkValidationResult(chunk=chunk, issues=tuple(issue_lists[index]))
+            for index, chunk in enumerate(chunks)
+        ]
 
     def validate(self, chunk: LegalChunk) -> ChunkValidationResult:
         issues: list[ChunkValidationIssue] = []
@@ -209,6 +265,71 @@ class LegalChunkValidator:
             )
 
         return issues
+
+    def _validate_article_sequence(
+        self,
+        chunks: list[LegalChunk],
+    ) -> list[tuple[int, ChunkValidationIssue]]:
+        issues: list[tuple[int, ChunkValidationIssue]] = []
+        last_accepted_article: tuple[int, int] | None = None
+        last_accepted_label: str | None = None
+        seen_article_part_keys: set[tuple[str, str | None, str | None, str]] = set()
+
+        for index, chunk in enumerate(chunks):
+            if chunk.chunk_type not in {"article", "article_part"}:
+                continue
+
+            if chunk.chunk_type == "article_part":
+                article_key = (
+                    chunk.source.source_id,
+                    chunk.position.chapter,
+                    chunk.position.section,
+                    chunk.position.article_number,
+                )
+                if article_key in seen_article_part_keys:
+                    continue
+                seen_article_part_keys.add(article_key)
+
+            current_article = self._parse_article_sequence_value(
+                chunk.position.article_number
+            )
+            if current_article is None:
+                continue
+
+            if last_accepted_article is not None and current_article <= last_accepted_article:
+                issues.append(
+                    (
+                        index,
+                        ChunkValidationIssue(
+                            code="article_sequence_regression",
+                            message=(
+                                "Article number goes backward or repeats relative "
+                                "to the previous accepted article."
+                            ),
+                            value=(
+                                f"previous={last_accepted_label}; "
+                                f"current={chunk.position.article_number}"
+                            ),
+                        ),
+                    )
+                )
+                continue
+
+            last_accepted_article = current_article
+            last_accepted_label = chunk.position.article_number
+
+        return issues
+
+    @staticmethod
+    def _parse_article_sequence_value(article_number: str) -> tuple[int, int] | None:
+        match = re.fullmatch("(?P<number>\\d+)(?P<suffix>[a-zA-Z]?)", article_number)
+        if not match:
+            return None
+
+        number = int(match.group("number"))
+        suffix = match.group("suffix").lower()
+        suffix_order = 0 if not suffix else ord(suffix) - ord("a") + 1
+        return number, suffix_order
 
     @staticmethod
     def _is_valid_date_parts(year: str, month: str, day: str) -> bool:
