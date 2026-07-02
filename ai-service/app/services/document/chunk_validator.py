@@ -273,22 +273,35 @@ class LegalChunkValidator:
         issues: list[tuple[int, ChunkValidationIssue]] = []
         last_accepted_article: tuple[int, int] | None = None
         last_accepted_label: str | None = None
-        seen_article_part_keys: set[tuple[str, str | None, str | None, str]] = set()
+        seen_article_chunk_keys: set[tuple[str, str | None, str | None, str]] = set()
 
         for index, chunk in enumerate(chunks):
-            if chunk.chunk_type not in {"article", "article_part"}:
+            if chunk.chunk_type not in {
+                "article",
+                "article_part",
+                "clause",
+                "clause_part",
+                "point",
+                "point_part",
+            }:
                 continue
 
-            if chunk.chunk_type == "article_part":
+            if chunk.chunk_type in {
+                "article_part",
+                "clause",
+                "clause_part",
+                "point",
+                "point_part",
+            }:
                 article_key = (
                     chunk.source.source_id,
                     chunk.position.chapter,
                     chunk.position.section,
                     chunk.position.article_number,
                 )
-                if article_key in seen_article_part_keys:
+                if article_key in seen_article_chunk_keys:
                     continue
-                seen_article_part_keys.add(article_key)
+                seen_article_chunk_keys.add(article_key)
 
             current_article = self._parse_article_sequence_value(
                 chunk.position.article_number
