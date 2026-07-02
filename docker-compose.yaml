@@ -87,11 +87,15 @@ services:
         condition: service_healthy
     environment:
       RABBITMQ_URL: amqp://guest:guest@risktrace.rabbitmq:5672/
+      KNOWLEDGE_BASE_DIR: /knowledge_base
       # ANALYSIS_EXCHANGE: risktrace.analysis
       # ANALYSIS_REQUEST_QUEUE: risktrace.analysis.requested
       # ANALYSIS_RESULT_ROUTING_KEY: analysis.completed
     ports:
       - "8001:8000"
+    volumes:
+      - ./ai-service/knowledge_base/sources:/knowledge_base/sources
+      - ./ai-service/knowledge_base/processed:/knowledge_base/processed
 
 volumes:
   risktrace-postgres:
