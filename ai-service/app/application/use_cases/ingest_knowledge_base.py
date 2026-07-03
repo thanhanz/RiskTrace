@@ -10,7 +10,7 @@ from app.services.document.chunker import (
     SourceMetadata,
     LegalKnowledgeBaseChunker,
 )
-from app.services.document.chunk_validator import LegalChunkValidator
+from app.core.validators.documents.chunk_validator import LegalChunkValidator
 from app.services.document.extractor import DocumentExtractor
 from app.services.document.ocr import OcrPdfExtractor
 
