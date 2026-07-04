@@ -11,7 +11,11 @@ from app.services.document.chunker import (
     LegalKnowledgeBaseChunker,
 )
 from app.core.validators.documents.chunk_validator import LegalChunkValidator
-from app.services.document.extractor import DocumentExtractor
+from app.services.document.extractor import (
+    DocumentExtractor,
+    ExtractedDocument,
+    PdfTextExtractor,
+)
 from app.services.document.ocr import OcrPdfExtractor
 
 #TODO: This usecase only called after ADMIN uploads the knowledge base PDFs and metadata to the sources/ folder. 
@@ -54,11 +58,13 @@ class KnowledgeBaseIngestionSummary:
 class IngestKnowledgeBaseUseCase:
     def __init__(
         self,
-        extractor: DocumentExtractor | None = None,
+        text_extractor: DocumentExtractor | None = None,
+        ocr_extractor: DocumentExtractor | None = None,
         chunker: LegalKnowledgeBaseChunker | None = None,
         validator: LegalChunkValidator | None = None,
     ) -> None:
-        self.extractor = extractor or OcrPdfExtractor()
+        self.text_extractor = text_extractor or PdfTextExtractor()
+        self.ocr_extractor = ocr_extractor or OcrPdfExtractor()
         self.chunker = chunker or LegalKnowledgeBaseChunker()
         self.validator = validator or LegalChunkValidator()
 
@@ -125,7 +131,7 @@ class IngestKnowledgeBaseUseCase:
 
         logger.info("Extracting text for source '%s' from '%s'.", source.source_id, pdf_path.name)
         
-        extracted_document = self.extractor.extract(pdf_path)
+        extracted_document = self._extract_document(pdf_path)
         
         logger.info(
             "Extracted %s page(s) for source '%s'.",
@@ -176,6 +182,26 @@ class IngestKnowledgeBaseUseCase:
             quarantined_chunk_count=len(quarantined_chunks),
             warnings=warnings,
         )
+
+    def _extract_document(self, pdf_path: Path) -> ExtractedDocument:
+        try:
+            extracted_document = self.text_extractor.extract(pdf_path)
+        except Exception as exc:
+            logger.warning(
+                "Selectable text extraction failed for '%s'; falling back to OCR: %s",
+                pdf_path.name,
+                exc,
+            )
+            return self.ocr_extractor.extract(pdf_path)
+
+        if extracted_document.text.strip():
+            return extracted_document
+
+        logger.warning(
+            "Selectable text extraction returned no usable text for '%s'; falling back to OCR.",
+            pdf_path.name,
+        )
+        return self.ocr_extractor.extract(pdf_path)
 
     @staticmethod
     def _load_metadata(pdf_path: Path) -> dict[str, Any]:
