@@ -14,6 +14,10 @@ class Settings(BaseSettings):
     ocr_language: str = "vie"
     ocr_dpi: int = 300
     ocr_min_text_chars_per_page: int = 20
+    embedding_model_name: str = "BAAI/bge-m3"
+    embedding_device: str | None = None
+    embedding_batch_size: int = 32
+    embedding_normalize: bool = True
     rabbitmq_url: str = "amqp://guest:guest@localhost:5672/"
     analysis_exchange: str = AnalysisMessagingConstants.EXCHANGE
     analysis_request_queue: str = AnalysisMessagingConstants.DOCUMENT_UPLOADED_QUEUE
