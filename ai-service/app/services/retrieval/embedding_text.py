@@ -99,6 +99,7 @@ def enrich_chunk_record(chunk: dict[str, Any]) -> dict[str, Any]:
         embedding_text=enriched["embedding_text"],
         position=_position_from_record(enriched),
         source=_source_from_record(enriched),
+        metadata=_metadata_from_record(enriched),
         embedding_model=enriched.get("embedding_model"),
         embedding_version=enriched.get("embedding_version"),
         embedding=enriched.get("embedding"),
@@ -198,6 +199,23 @@ def _source_from_record(chunk: dict[str, Any]) -> EmbeddingChunkSource:
         jurisdiction=_first_non_empty(source, "jurisdiction"),
         document_type=_first_non_empty(source, "document_type"),
     )
+
+
+def _metadata_from_record(chunk: dict[str, Any]) -> dict[str, Any]:
+    reserved = {
+        "chunk_id",
+        "chunk_type",
+        "raw_text",
+        "clean_text",
+        "text",
+        "embedding_text",
+        "position",
+        "source",
+        "embedding_model",
+        "embedding_version",
+        "embedding",
+    }
+    return {key: value for key, value in chunk.items() if key not in reserved}
 
 
 def _first_non_empty(values: dict[str, Any], *keys: str) -> str | None:

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from typing import Any
 
 
@@ -40,6 +40,7 @@ class KnowledgeBaseEmbeddingChunk:
     embedding_text: str
     position: EmbeddingChunkPosition
     source: EmbeddingChunkSource
+    metadata: dict[str, Any] = field(default_factory=dict)
     embedding_model: str | None = None
     embedding_version: str | None = None
     embedding: list[float] | None = None
@@ -48,6 +49,7 @@ class KnowledgeBaseEmbeddingChunk:
         """Serialize the domain model using the vector-record field names."""
 
         record = asdict(self)
+        record.update(record.pop("metadata"))
         if self.embedding_model is None:
             record.pop("embedding_model")
         if self.embedding_version is None:

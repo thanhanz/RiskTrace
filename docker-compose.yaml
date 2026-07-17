@@ -85,9 +85,12 @@ services:
     depends_on:
       risktrace.rabbitmq:
         condition: service_healthy
+      risktrace.vector.db:
+        condition: service_healthy
     environment:
       RABBITMQ_URL: amqp://guest:guest@risktrace.rabbitmq:5672/
       KNOWLEDGE_BASE_DIR: /knowledge_base
+      VECTOR_DB_URL: ${VECTOR_DB_URL:?VECTOR_DB_URL must be set}
       # ANALYSIS_EXCHANGE: risktrace.analysis
       # ANALYSIS_REQUEST_QUEUE: risktrace.analysis.requested
       # ANALYSIS_RESULT_ROUTING_KEY: analysis.completed
@@ -97,5 +100,24 @@ services:
       - ./ai-service/knowledge_base/sources:/knowledge_base/sources
       - ./ai-service/knowledge_base/processed:/knowledge_base/processed
 
+  risktrace.vector.db:
+    container_name: risktrace_ai_vector_db
+    image: pgvector/pgvector:pg17
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${VECTOR_DB_NAME:-risktrace_vectors}
+      POSTGRES_USER: ${VECTOR_DB_USER:-risktrace_ai}
+      POSTGRES_PASSWORD: ${VECTOR_DB_PASSWORD:?VECTOR_DB_PASSWORD must be set}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "${VECTOR_DB_PORT:-5434}:5432"
+    volumes:
+      - risktrace-vector-postgres:/var/lib/postgresql/data
+
 volumes:
   risktrace-postgres:
+  risktrace-vector-postgres:
