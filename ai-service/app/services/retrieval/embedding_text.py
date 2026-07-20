@@ -91,7 +91,29 @@ def enrich_chunk_record(chunk: dict[str, Any]) -> dict[str, Any]:
     enriched["clean_text"] = clean_chunk_text(str(clean_text or raw_text))
     enriched["embedding_text"] = build_embedding_text(enriched)
 
-    model = KnowledgeBaseEmbeddingChunk(
+    model = build_embedding_chunk(enriched)
+
+    # Keep chunker metadata such as effect, trace, and parent until the future
+    # vector-store mapping decides which fields belong in payload metadata.
+    result = dict(enriched)
+    result.update(model.to_dict())
+    return result
+
+
+def build_embedding_chunk(chunk: dict[str, Any]) -> KnowledgeBaseEmbeddingChunk:
+    """Build the domain model used by the embedder and vector store."""
+
+    enriched = dict(chunk)
+    raw_text = _first_non_empty(enriched, "raw_text", "text")
+    if not raw_text:
+        raise ValueError("Chunk is missing text; expected raw_text or text.")
+
+    clean_text = _first_non_empty(enriched, "clean_text")
+    enriched["raw_text"] = str(raw_text)
+    enriched["clean_text"] = clean_chunk_text(str(clean_text or raw_text))
+    enriched["embedding_text"] = build_embedding_text(enriched)
+
+    return KnowledgeBaseEmbeddingChunk(
         chunk_id=_required(enriched, "chunk_id"),
         chunk_type=_required(enriched, "chunk_type"),
         raw_text=enriched["raw_text"],
@@ -104,12 +126,6 @@ def enrich_chunk_record(chunk: dict[str, Any]) -> dict[str, Any]:
         embedding_version=enriched.get("embedding_version"),
         embedding=enriched.get("embedding"),
     )
-
-    # Keep chunker metadata such as effect, trace, and parent until the future
-    # vector-store mapping decides which fields belong in payload metadata.
-    result = dict(enriched)
-    result.update(model.to_dict())
-    return result
 
 
 def enrich_chunks_jsonl(
