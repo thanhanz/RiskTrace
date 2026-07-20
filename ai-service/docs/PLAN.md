@@ -2,7 +2,7 @@
 
 ## Source Code Readout
 
-The current product foundation supports account access, review sessions, document upload, message history, cloud storage, and an event-based handoff from the main backend to the AI service. The AI service structure exists, but knowledge base ingestion, document extraction, legal retrieval, clause risk scoring, citations, recommendations, and final report generation still need to be implemented before the two core product features are usable end to end.
+The current product foundation supports account access, review sessions, document upload, message history, cloud storage, and an event-based handoff from the main backend to the AI service. Within the AI service, legal-source ingestion, text extraction, OCR fallback, legal chunking, chunk validation, contextual embedding-text generation, BGE-M3 embedding generation, and idempotent pgVector storage are implemented. The next RAG phase is to define retrieval strategies, assemble clause-level legal context, and construct prompts for the LLM. Clause risk scoring, final report generation, and the complete end-to-end review workflow remain unfinished.
 
 This plan is written for business execution in Jira. It focuses on user and system outcomes, not implementation files.
 
@@ -136,6 +136,8 @@ This plan is written for business execution in Jira. It focuses on user and syst
 
 #### Ticket RT-102: Import Legal Documents Into the Knowledge Base
 
+**Status:** Completed (implemented ingestion and repeatable chunk-file generation)
+
 **Type:** Feature  
 **Priority:** Critical  
 **Description:** Allow approved legal source documents to be imported into the system for later retrieval. The ingestion workflow should support repeatable imports without creating duplicate knowledge.
@@ -148,6 +150,8 @@ This plan is written for business execution in Jira. It focuses on user and syst
 **Dependencies:** RT-101
 
 #### Ticket RT-103: Structure Legal Content for Retrieval
+
+**Status:** Completed (implemented legal chunking, validation, contextual embedding text, and pgVector indexing)
 
 **Type:** Feature  
 **Priority:** High  
@@ -162,6 +166,8 @@ This plan is written for business execution in Jira. It focuses on user and syst
 
 #### Ticket RT-104: Add Legal Citation Metadata
 
+**Status:** Completed (source, version, effective-date, article, clause, point, and position metadata are stored with each vector record)
+
 **Type:** Feature  
 **Priority:** High  
 **Description:** Attach citation-ready metadata to every searchable legal section so risk findings can reference the law behind the conclusion. Citations are essential for user trust.
@@ -174,6 +180,8 @@ This plan is written for business execution in Jira. It focuses on user and syst
 **Dependencies:** RT-103
 
 #### Ticket RT-105: Validate Legal Retrieval Quality
+
+**Status:** In progress
 
 **Type:** Testing  
 **Priority:** High  
@@ -205,6 +213,8 @@ This plan is written for business execution in Jira. It focuses on user and syst
 
 #### Ticket RT-201: Extract Text From Uploaded Contracts
 
+**Status:** Completed (implemented selectable-text extraction with persisted document/chunk context)
+
 **Type:** Feature  
 **Priority:** Critical  
 **Description:** Convert uploaded contract files into clean text for AI review. The user should receive a clear error if the contract cannot be read.
@@ -218,6 +228,8 @@ This plan is written for business execution in Jira. It focuses on user and syst
 
 #### Ticket RT-202: Support Scanned Contract OCR
 
+**Status:** Completed (implemented OCR fallback and extraction warnings; end-to-end report signaling remains future work)
+
 **Type:** Feature  
 **Priority:** High  
 **Description:** Add support for scanned PDFs where text cannot be extracted directly. This is important because many legal documents are scanned copies.
@@ -230,6 +242,8 @@ This plan is written for business execution in Jira. It focuses on user and syst
 **Dependencies:** RT-201
 
 #### Ticket RT-203: Split Contracts Into Reviewable Clauses
+
+**Status:** Completed (implemented ordered legal chunking with article, clause, point, and source traceability)
 
 **Type:** Feature  
 **Priority:** Critical  
@@ -286,6 +300,8 @@ This plan is written for business execution in Jira. It focuses on user and syst
 **Dependencies:** RT-203, RT-104
 
 #### Ticket RT-302: Retrieve Relevant Legal References Per Clause
+
+**Status:** In progress (pgVector similarity search exists; clause-level retrieval strategy and orchestration are next)
 
 **Type:** Integration  
 **Priority:** Critical  
@@ -490,7 +506,33 @@ This plan is written for business execution in Jira. It focuses on user and syst
 
 ---
 
-## 3. Sprint Plan
+## 3. Current RAG Milestone
+
+The knowledge-base vector indexing foundation is implemented. The current flow is:
+
+```text
+PDF + metadata
+  -> extracted text
+  -> validated legal chunks
+  -> contextual embedding text
+  -> normalized BGE-M3 embeddings
+  -> PostgreSQL/pgVector
+```
+
+The indexer reads processed `*.chunks.jsonl` files, generates 1024-dimensional BGE-M3 vectors, and upserts them into the `knowledge_base_vectors` table using `chunk_id` as the idempotency key. Source, version, effective-date, position, and legal hierarchy metadata remain attached to each stored vector.
+
+The next implementation sequence is:
+
+1. Define retrieval strategies for contract clauses and user questions, including similarity limits, source filtering, and weak-match handling.
+2. Retrieve and assemble the most relevant legal chunks with enough neighboring and citation context for review.
+3. Define the prompt and context package sent to the LLM, including contract text, retrieved legal references, output boundaries, and the required advisory disclaimer.
+4. Validate retrieval quality with representative Vietnamese real estate questions before enabling grounded risk findings.
+
+Operational note: malformed JSONL stops indexing at the first invalid record. The complete vector count is therefore the number of valid, uniquely identified chunks successfully indexed, not the number of PDF pages.
+
+---
+
+## 4. Sprint Plan
 
 ### Sprint 1: Secure Review Workspace and MVP Scope
 
@@ -502,27 +544,27 @@ This plan is written for business execution in Jira. It focuses on user and syst
 
 ### Sprint 2: Legal Knowledge Base Ingestion
 
-**Sprint goal:** Build the first controlled legal knowledge base for Vietnamese real estate review.
+**Sprint goal:** Complete the controlled legal knowledge-base ingestion and vector-indexing foundation for Vietnamese real estate review.
 
 **Tickets in this sprint:** RT-101, RT-102, RT-103, RT-104, RT-106
 
-**Demo at sprint end:** An approved legal source is imported, structured into searchable legal sections, versioned, and displayed with citation-ready metadata.
+**Demo at sprint end:** An approved legal source is imported, structured into searchable legal sections, enriched with citation-ready metadata, embedded, and stored in pgVector.
 
 ### Sprint 3: Contract Intake and Analysis Start
 
-**Sprint goal:** Turn uploaded contracts into analyzable clause-level content and start analysis automatically.
+**Sprint goal:** Turn uploaded contracts into analyzable clause-level content and prepare the analysis handoff.
 
-**Tickets in this sprint:** RT-201, RT-203, RT-204, RT-205
+**Tickets in this sprint:** RT-201, RT-202, RT-203, RT-204, RT-205
 
-**Demo at sprint end:** A user uploads a readable contract, the system extracts text, splits it into clauses, starts analysis, and shows success or failure status clearly.
+**Demo at sprint end:** A contract is extracted, OCR is available as a fallback, text is split into traceable clauses, and the analysis workflow can be started with clear success or failure status.
 
 ### Sprint 4: Legal Retrieval and AI Risk Findings
 
-**Sprint goal:** Produce grounded clause-level risk findings using the legal knowledge base.
+**Sprint goal:** Design and validate legal retrieval, then prepare grounded context for LLM review.
 
 **Tickets in this sprint:** RT-105, RT-301, RT-302, RT-303, RT-304, RT-306
 
-**Demo at sprint end:** The system reviews contract clauses, retrieves relevant legal references, classifies risk severity, and produces recommendations with confidence and disclaimers.
+**Demo at sprint end:** The system retrieves candidate legal references for contract clauses, records retrieval gaps, and produces a review-ready prompt/context package. Risk classification and recommendations remain subsequent work.
 
 ### Sprint 5: Final Report, Results Delivery, and Follow-Up Chat
 

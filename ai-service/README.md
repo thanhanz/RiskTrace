@@ -2,6 +2,59 @@
 
 Python service for legal document analysis workflows.
 
+## Current Status
+
+The knowledge-base preparation and vector-indexing foundation is implemented. The service currently supports:
+
+- PDF legal-source ingestion with metadata sidecars.
+- Selectable-text extraction with OCR fallback for scanned PDFs.
+- Legal chunking and validation with article, clause, point, page, and source traceability.
+- Contextual embedding-text generation so chunks retain their legal hierarchy during retrieval.
+- Normalized 1024-dimensional embeddings generated with BGE-M3.
+- Idempotent vector upserts to PostgreSQL using the pgVector extension.
+
+The default vector table is `knowledge_base_vectors`. Each record stores the chunk text, embedding, source metadata, legal position, embedding model/version, and additional metadata. `chunk_id` is the primary key, so re-indexing updates an existing chunk instead of creating a duplicate.
+
+The next RAG work is to define retrieval strategies for contract clauses and questions, assemble useful legal context, and construct the prompt/context package sent to the LLM. Final risk classification, recommendations, and complete grounded review output are not implemented yet.
+
+## Knowledge-Base and RAG Flow
+
+The implemented indexing flow is:
+
+```text
+PDF + metadata
+  -> extracted text
+  -> validated legal chunks
+  -> contextual embedding text
+  -> BGE-M3 embeddings
+  -> PostgreSQL/pgVector
+```
+
+The planned review flow is:
+
+```text
+Contract clause or user question
+  -> retrieval strategy
+  -> pgVector similarity search
+  -> legal context and citation selection
+  -> prompt/context construction
+  -> LLM review
+```
+
+The low-level pgVector adapter already supports cosine-similarity search and optional `source_id` filtering. Clause-level retrieval orchestration, retrieval-quality evaluation, and LLM prompt construction remain the next implementation steps.
+
+To verify the number of successfully indexed vectors:
+
+```sql
+SELECT COUNT(*) FROM knowledge_base_vectors;
+```
+
+The result should equal the number of valid, uniquely identified chunks that completed indexing. A malformed JSONL record stops the indexer at that record, so check the AI-service logs when the count is lower than expected:
+
+```powershell
+docker logs risktrace.ai
+```
+
 ## Source Structure
 
 ```text
@@ -52,7 +105,8 @@ app/
 |   |-- storage/
 |   |   `-- r2_client.py
 |   |-- vector_db/
-|   |   `-- qdrant_client.py
+|   |   |-- pgvector_store.py
+|   |   `-- schema.sql
 |   |-- messaging/
 |   |   |-- rabbitmq_connection.py
 |   |   |-- rabbitmq_consumer.py
