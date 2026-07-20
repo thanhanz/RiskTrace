@@ -7,7 +7,8 @@ from app.core.constants import AnalysisMessagingConstants
 
 class Settings(BaseSettings):
     service_name: str = "RiskTrace AI Service"
-    ingest_knowledge_base_on_startup: bool = True
+    ingest_knowledge_base_on_startup: bool = False
+    index_knowledge_base_on_startup: bool = True
     knowledge_base_dir: str | None = None
     
     # OCR settings
@@ -18,8 +19,9 @@ class Settings(BaseSettings):
     
     # Embedding settings
     embedding_model_name: str = "BAAI/bge-m3"
+    embedding_version: str = "v1"
     embedding_device: str | None = None
-    embedding_batch_size: int = 32
+    embedding_batch_size: int = 32 #Maximum batch size for embedding requests
     embedding_normalize: bool = True
     
     # Vector database settings

@@ -71,6 +71,15 @@ class PgVectorStore(VectorStorePort):
                 "asyncpg and pgvector are required for the PostgreSQL vector store."
             ) from exc
 
+        # pgvector's ``vector`` type must exist before register_vector() can
+        # inspect it during pool initialization. Bootstrap the extension with
+        # a temporary connection before creating the application pool.
+        bootstrap_connection = await asyncpg.connect(self.database_url)
+        try:
+            await bootstrap_connection.execute("CREATE EXTENSION IF NOT EXISTS vector")
+        finally:
+            await bootstrap_connection.close()
+
         async def initialize_connection(connection: Any) -> None:
             await register_vector(connection)
             await connection.set_type_codec(
@@ -223,7 +232,7 @@ def _chunk_row(
         source,
         metadata,
         chunk.embedding_model or getattr(embedder, "model_name", settings.embedding_model_name),
-        chunk.embedding_version,
+        chunk.embedding_version or settings.embedding_version,
         vector,
     )
 

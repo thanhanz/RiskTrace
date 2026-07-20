@@ -5,6 +5,9 @@ from app.domain.models.knowledge_base import KnowledgeBaseEmbeddingChunk
 
 
 class VectorStorePort(Protocol):
+    async def ensure_schema(self) -> None:
+        ...
+
     async def upsert(self, chunks: Sequence[KnowledgeBaseEmbeddingChunk]) -> int:
         ...
 
