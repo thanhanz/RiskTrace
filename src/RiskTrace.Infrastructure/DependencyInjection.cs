@@ -18,7 +18,6 @@ public static class DependencyInjection
         services.AddJwtOptions(configuration);
         services.AddPersistence(configuration);
         services.AddCaching(configuration);
-        services.AddRabbitMq(configuration);
         services.AddJwtBearerAuthentication(configuration);
         services.AddInfrastructureRepositories();
         services.AddAuthServices();

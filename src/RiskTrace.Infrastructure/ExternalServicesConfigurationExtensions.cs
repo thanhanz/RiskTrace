@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using RiskTrace.Infrastructure.AI;
+using RiskTrace.Infrastructure.Messaging.Extensions;
 using RiskTrace.Infrastructure.Storage;
 using RiskTrace.UseCases.Ports.AI;
 
@@ -14,6 +15,7 @@ internal static class ExternalServicesConfigurationExtensions
     {
         services.AddScoped<ILegalAiClient, LegalAiHttpClient>();
         services.AddR2Storage(configuration);
+        services.AddRabbitMq(configuration);
 
         return services;
     }
