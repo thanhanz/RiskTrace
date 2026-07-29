@@ -41,8 +41,10 @@ public partial class Program
         //Will remove soon - API should not depend on Infrastructure
         builder.Services.AddInfrastructure(builder.Configuration);
 
-        var app = builder.Build();
+        var app = builder.Build(); // .Build() will converts the ICollectionService into IServiceProvider 
 
+
+        // **Middleware pipeline setup**
         if (app.Environment.IsDevelopment())
         {
             app.UseSwagger();
